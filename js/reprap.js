@@ -29,17 +29,10 @@ $(document).ready(function() {
         chartData[1].push([i,10]);
     }
     chart = $.plot("#tempchart", chartData, {
-			series: {
-				shadowSize: 0	// Drawing is faster without shadows
-			},
-			yaxis: {
-				min: -20,
-				max: 250
-			},
-			xaxis: {
-				show: false
-			}
-		});
+        series: {shadowSize: 0},
+        yaxis: {min: -20,max: 250},
+        xaxis: {show: false}
+    });
 });
 
 $('#connect').on('click', function() {
@@ -106,6 +99,7 @@ $('div#panicBtn button').on('click', function() {
     switch(btnVal) {
         case "M112":
             //panic stop
+            polling=false;
             
             break;
         case "M24":
@@ -125,6 +119,11 @@ $('div#panicBtn button').on('click', function() {
             break;
     }
     $.askElle('gcode', btnVal);
+});
+
+$("a#gFileLink").on('click', function() {
+    var filename = $(this).text();
+    $.askElle('gcode', "M23 "+filename+"\nM24");    
 });
 
 function disableButtons(which) {
@@ -147,16 +146,6 @@ function enableButtons(which) {
             $('div#panicBtn button').removeClass('disabled');
             break;
     }
-}
-
-function dontInterruptFilePrint()
-{
-    if (!printingAFile) {
-        //alert("printingAFile == false");
-        return false;
-    }
-    alert("You must pause the print on the Print page first.");
-    return true;
 }
 
 function message(type, text){
@@ -223,7 +212,7 @@ function listGFiles() {
     $('div#gFileList').html("");
     var result = $.askElle("files", "");
     result.files.forEach(function(item){
-        $('div#gFileList').append('<a href="#" class="list-group-item">'+item+'</a>');
+        $('div#gFileList').append('<a href="#" class="list-group-item" id="gFileLink">'+item+'</a>');
     });
 }
 
