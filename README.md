@@ -17,7 +17,7 @@ All of the above should be stored on a web server local to you, if you dont have
 
 they provide a portable version that runs standalone from a directory, however pretty much any webserver (apart from the Duet one!) will do.
 
-1. before copying reprap.htm to the SD card edit it and change all <link> href locations (top of file) and <script> src locations (end of file) to point to where they reside on your local webserver, you can "find and replace" anything beginning with "http://192.168.1.2/reprap".
+1. before copying reprap.htm to the SD card edit it and change all link href locations (top of file) and script src locations (end of file) to point to where they reside on your local webserver, you can "find and replace" anything beginning with "http://192.168.1.2/reprap".
 
 2. edit js/reprap.js and change the value of "var ormerodIP" to be the IP of you Ormerod duet LAN interface (as configured in sys/config.g on your SD card).
 
