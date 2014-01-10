@@ -216,6 +216,7 @@ function updatePage() {
             enableButtons("gfilelist");
         } else if (status.poll[0] === "I" && paused) {
             enableButtons('panic');
+            enableButtons('head');
             printing = true;
             $('button#printing').removeClass('btn-danger').removeClass('btn-success').addClass('btn-warning').text("Paused");
         } else if (status.poll[0] === "P") {
