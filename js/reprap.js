@@ -31,8 +31,13 @@ $(document).ready(function() {
     chart = $.plot("#tempchart", chartData, {
         series: {shadowSize: 0},
         yaxis: {min: -20,max: 250},
-        xaxis: {show: false}
+        xaxis: {show: false},
+        grid: {
+            borderWidth:0
+        }
     });
+    //$('div#feed input#2').button('toggle');
+    //$('div#feed input#forward').button('toggle');    
 });
 
 $('#connect').on('click', function() {
@@ -47,7 +52,7 @@ $('#connect').on('click', function() {
     }
 });
 
-$('div#bedTemperature button#setHeadTemp, div#bedTemperature a#bedTempLink').on('click', function() {
+$('div#bedTemperature button#setBedTemp, div#bedTemperature a#bedTempLink').on('click', function() {
     var code;
     if(this.nodeName === 'BUTTON') {
         code = $('input#bedTempInput').val();
@@ -66,6 +71,17 @@ $('div#headTemperature button#setHeadTemp, div#headTemperature a#headTempLink').
         code = $(this).text();
     }
     $.askElle('gcode', "G10 P"+head+" S"+code+"\nT"+head);
+});
+
+$('div#feed button#feed').on('click', function() {
+    var amount = $(this).val();
+    var dir = "";
+    if ($('input[name="feeddir"]:checked').attr('id') == "reverse") {
+        dir = "-";
+    } 
+    var feedRate = " F"+$('input[name="speed"]:checked').val();
+    var code = "M120\nG83\nG1 E"+dir+amount+feedRate+"\nM121";
+    $.askElle('gcode', code);
 });
 
 $('div#sendG button#txtinput, div#sendG a#gLink').on('click', function() {
@@ -121,7 +137,7 @@ $('div#panicBtn button').on('click', function() {
     $.askElle('gcode', btnVal);
 });
 
-$("a#gFileLink").on('click', function() {
+$("div#gFileList").on('click', 'button#gFileLink' ,function() {
     var filename = $(this).text();
     $.askElle('gcode', "M23 "+filename+"\nM24");    
 });
@@ -129,10 +145,13 @@ $("a#gFileLink").on('click', function() {
 function disableButtons(which) {
     switch (which) {
         case "head":
-            $('table#moveHead button, table#temp button, table#extruder button, div#feed label').addClass('disabled');
+            $('table#moveHead button, table#temp button, table#extruder button, table#extruder label').addClass('disabled');
             break;
         case "panic":
             $('div#panicBtn button').addClass('disabled');
+            break;
+        case "gfilelist":
+            $('div#gFileList button').addClass('disabled');
             break;
     }
 }
@@ -140,11 +159,14 @@ function disableButtons(which) {
 function enableButtons(which) {
     switch (which) {
         case "head":
-            $('table#moveHead button, table#temp button, table#extruder button, div#feed label').removeClass('disabled');
+            $('table#moveHead button, table#temp button, table#extruder button, table#extruder label').removeClass('disabled');
             break;
         case "panic":
             $('div#panicBtn button').removeClass('disabled');
             break;
+        case "gfilelist":
+            $('div#gFileList button').removeClass('disabled');
+            break;            
     }
 }
 
@@ -174,15 +196,22 @@ function updatePage() {
         disableButtons("panic");
     } else {
         $('button#connect').removeClass('btn-danger').addClass('btn-success').text("Connected");; //Connected Hoorahhh!
-        enableButtons('head');
         message('hide', '');
-        if (status.poll[0] === "I") {
+        if (status.poll[0] === "I" && !paused) {
             printing = false;
             disableButtons("panic");
             $('button#printing').removeClass('btn-danger').removeClass('btn-success').addClass('btn-warning');
             if (!paused) $('button#printing').text("Ready :)");
+            enableButtons('head');
+            enableButtons("gfilelist");
+        } else if (status.poll[0] === "I" && paused) {
+            enableButtons('panic');
+            printing = true;
+            $('button#printing').removeClass('btn-danger').removeClass('btn-success').addClass('btn-warning').text("Paused");
         } else if (status.poll[0] === "P") {
             enableButtons('panic');
+            disableButtons("head");
+            disableButtons("gfilelist");
             printing = true;
             $('button#printing').removeClass('btn-danger').removeClass('btn-warning').addClass('btn-success').text("Active");
         } else {
@@ -194,8 +223,16 @@ function updatePage() {
         $('span#Ypos').text(status.poll[4]);  
         $('span#Zpos').text(status.poll[5]);
         $('span#Epos').text(status.poll[6]);
+        
+        //Temp chart stuff
         chartData[0].push(parseFloat(status.poll[1]));
         chartData[1].push(parseFloat(status.poll[2]));
+        chart.setData(parseChartData());
+        chart.draw();
+    }
+}
+
+function parseChartData() {
         if (chartData[0].length > 50) chartData[0].shift();
         if (chartData[1].length > 50) chartData[1].shift();
         var res = [[],[]];
@@ -203,16 +240,18 @@ function updatePage() {
             res[0].push([i, chartData[0][i]]);
             res[1].push([i, chartData[1][i]]);
         }
-        chart.setData(res);
-        chart.draw();
-    }
+        return res;
 }
 
 function listGFiles() {
+    var count = 0;
+    var list = "gFileList";
     $('div#gFileList').html("");
     var result = $.askElle("files", "");
     result.files.forEach(function(item){
-        $('div#gFileList').append('<a href="#" class="list-group-item" id="gFileLink">'+item+'</a>');
+        count++;
+        if (count > 14) list = "gFileList2";
+        $('div#'+list).append('<button type="button" class="btn btn-default" id="gFileLink">'+item+'</button>');
     });
 }
 
