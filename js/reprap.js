@@ -4,8 +4,13 @@ var polling = false;
 var printing = false;
 var paused = false;
 var ormerodIP = "192.168.1.144";
+
+//Temp Chart
 var chart;
+var maxDataPoints = 100;
 var chartData = [[],[]];
+var bedColour = "#454BFF";
+var headColour = "#FC2D2D"
 
 jQuery.extend({
     askElle: function(reqType, code) {
@@ -24,12 +29,17 @@ jQuery.extend({
 });
 
 $(document).ready(function() {
-    for (var i=0; i<50; i++) {
+    for (var i=0; i<maxDataPoints; i++) {
         chartData[0].push([i,20]);
         chartData[1].push([i,10]);
     }
+    
+    $('#bedTxt').css("color", bedColour);
+    $('#headTxt').css("color", headColour);
+    
     chart = $.plot("#tempchart", chartData, {
         series: {shadowSize: 0},
+        colors: [bedColour, headColour],
         yaxis: {min: -20,max: 250},
         xaxis: {show: false},
         grid: {
@@ -137,7 +147,7 @@ $('div#panicBtn button').on('click', function() {
     $.askElle('gcode', btnVal);
 });
 
-$("div#gFileList").on('click', 'button#gFileLink' ,function() {
+$("div#gFileList, div#gFileList2, div#gFileList3").on('click', 'button#gFileLink' ,function() {
     var filename = $(this).text();
     $.askElle('gcode', "M23 "+filename+"\nM24");    
 });
@@ -151,7 +161,7 @@ function disableButtons(which) {
             $('div#panicBtn button').addClass('disabled');
             break;
         case "gfilelist":
-            $('div#gFileList button').addClass('disabled');
+            $('div#gFileList button, div#gFileList2 button, div#gFileList3 button').addClass('disabled');
             break;
     }
 }
@@ -165,7 +175,7 @@ function enableButtons(which) {
             $('div#panicBtn button').removeClass('disabled');
             break;
         case "gfilelist":
-            $('div#gFileList button').removeClass('disabled');
+            $('div#gFileList button, div#gFileList2 button, div#gFileList3 button').removeClass('disabled');
             break;            
     }
 }
@@ -233,8 +243,8 @@ function updatePage() {
 }
 
 function parseChartData() {
-        if (chartData[0].length > 50) chartData[0].shift();
-        if (chartData[1].length > 50) chartData[1].shift();
+        if (chartData[0].length > maxDataPoints) chartData[0].shift();
+        if (chartData[1].length > maxDataPoints) chartData[1].shift();
         var res = [[],[]];
         for (var i = 0; i < chartData[0].length; ++i) {
             res[0].push([i, chartData[0][i]]);
@@ -250,7 +260,14 @@ function listGFiles() {
     var result = $.askElle("files", "");
     result.files.forEach(function(item){
         count++;
-        if (count > 14) list = "gFileList2";
+        switch (true) {
+            case (count > 14):
+                list = "gFileList2";
+                break;
+            case (count > 29):
+                list = "gFileList3";
+                break;
+        }
         $('div#'+list).append('<button type="button" class="btn btn-default" id="gFileLink">'+item+'</button>');
     });
 }
