@@ -5,10 +5,9 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
         <!-- Bootstrap -->
-        <link href="http://192.168.1.2/reprap/css/bootstrap.min.css" rel="stylesheet" type="text/css" />
-        <link href="http://192.168.1.2/reprap/css/jquery.jqplot.css"  rel="stylesheet" type="text/css" />
+        <link href="http://192.168.1.2/reprap/css/bootstrap.min.css" type="text/css" rel="stylesheet" />
         <link href="http://192.168.1.2/reprap/css/main.css"  type="text/css" rel="stylesheet" />
-        <link rel="icon" href="http://192.168.1.2/reprap/favicon.ico" type="image/x-icon" />        
+        <link href="http://192.168.1.2/reprap/favicon.ico" type="image/x-icon" rel="icon" />        
         <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
         <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
         <!--[if lt IE 9]>
@@ -36,13 +35,13 @@
                     <div class="col-md-3">
                         <ul class="nav navbar-nav">
                             <li class="active"><a href="#">Control</a></li>
-                            <li><a href="#">Print</a></li>
+                            <li><a href="#">Upload G</a></li>
                             <li class="dropdown">
                                 <a href="#" class="dropdown-toggle" data-toggle="dropdown">Settings <b class="caret"></b></a>
                                 <ul class="dropdown-menu">
                                     <li><a href="#">XY Axis Speed</a></li>
                                     <li><a href="#">Z Axis Speed</a></li>
-                                    <li><a href="#">Extruder Speed</a></li>
+                                    <li><a href="#">Layer Height</a></li>
                                     <li class="divider"></li>
                                     <li><a href="#">Poll every 2s</a></li>
                                     <li class="divider"></li>
@@ -82,19 +81,16 @@
 
             <!-- Begin page content -->
             <div class="container">
-
                 <div class="row">
                     <div class="col-md-3 btn-group" id="panicBtn">
-                        <button type="button" value='M25' class="btn btn-info disabled">Pause</button>
-                        <button type="button" value='M112' class="btn btn-danger disabled" title='M112, moves in progress are immediately terminated, shuts down, motors/heaters turned off. Requires reset button on duet to restart'>STOP!</button>
-                        <button type="button" class="btn btn-danger dropdown-toggle  disabled" data-toggle="dropdown">
-                            <span class="caret"></span>
-                            <span class="sr-only">Toggle Dropdown</span>
-                        </button>
-                        <ul class="dropdown-menu" role="menu">
-                            <li><a href="#" title= 'M0, finishes moves in buffer, shuts down, motors/heaters turned off. Requires reset button on duet to restart'>Stop</a></li>
-                            <li><a href="#" title= 'M1, finishes moves in buffer, shuts down, motors/heaters turned off. The first G or M code will wake it up '>Sleep</a></li>
-                        </ul>
+                        <div class="col-md-12">
+                            <button type="button" value='M25' class="btn btn-info" title='Pause printing, Resumeable'>Pause</button>
+                            <button type="button" value='M112' class="btn btn-danger disabled" title='M112, moves in progress are immediately terminated, shuts down, motors/heaters turned off. Requires reset button on duet to restart'>STOP!</button>
+                            <button type="button" value='reset' id='reset' class="btn btn-success hidden" title='Pause before reset'>Reset</button>
+                        </div>
+                        <div  class="col-md-8" style="margin-top: 3px">
+                            <input type="text" id="objheight" class="form-control" placeholder="Print Height in mm"> 
+                        </div>
                     </div>
 
                     <div class="col-md-4">    
@@ -124,13 +120,17 @@
                     </div>
                 </div>
 
+                <div class="progress progress-striped active">
+                    <div id="progress" class="progress-bar progress-bar-info" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" style="width: 0%"></div>
+                </div>
+
                 <div class="row">
-                    <div class="col-md-8">  
+                    <div class="col-md-8">
                         <table class="table table-bordered" id="moveHead">
                             <tbody>
                                 <tr>
                                     <td colspan="3">
-                                        <div class="col-md-1"><button type="button" value='M18' class="btn btn-primary btn-sm disabled" title='Disables stepper motors and allows axis to move freely.'>Motors off</button></div>
+                                        <div class="col-md-1"><button type="button" value='M18' id='motoroff' class="btn btn-primary btn-sm disabled" title='Disables stepper motors and allows axis to move freely.'>Motors off</button></div>
                                         <div class="col-md-11 text-center"><strong>Move Head Position</strong></div>
                                     </td>
                                 </tr>                                
@@ -309,10 +309,10 @@
                         <div class="panel panel-default">
                             <div class="panel-body">
                                 <strong>Select a G file to print</strong>
+                                <button type="button" class="btn btn-default pull-right" id="filereload">Refresh</button>
                             </div>
                         </div>
                         <div class="btn-group-vertical" id="gFileList">
-                            <a href="#" class="list-group-item">Connect to view G files</a>
                         </div>
                         <div class="btn-group-vertical" id="gFileList2">
                         </div>
