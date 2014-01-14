@@ -360,9 +360,9 @@ function updatePage() {
             disableButtons("head");
             disableButtons("gfilelist");
             if (isNumber(objHeight)) {
-                layerCount = objHeight / layerHeight;
+                layerCount = Math.ceil(objHeight / layerHeight);
                 currentLayer = Math.ceil(status.poll[5] / layerHeight);
-                setProgress((currentLayer / layerCount) * 100, currentLayer, layerCount);
+                setProgress(Math.ceil((currentLayer / layerCount) * 100), currentLayer, layerCount);
             } else {
                 setProgress(0, 0, 0);
             }
@@ -387,7 +387,7 @@ function updatePage() {
 }
 
 function setProgress(percent, layer, layers) {
-    if (layer === 0) {
+    if (layer !== 0) {
         $('span#progressText').text(percent + "% Complete, Layer " + layer + " of " + layers).attr('title', "Layer " + layer + " of " + layers);
     } else {
         $('span#progressText').text("").attr('title', "");
