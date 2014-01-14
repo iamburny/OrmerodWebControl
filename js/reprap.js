@@ -13,12 +13,8 @@ var objHeight;
 var chart;
 var maxDataPoints = 100;
 var chartData = [[], []];
-var bedColour = "#454BFF";
-var headColour = "#FC2D2D"
-
-function isNumber(n) {
-  return !isNaN(parseFloat(n)) && isFinite(n);
-}
+var bedColour = "#454BFF"; //blue
+var headColour = "#FC2D2D" //red
 
 jQuery.extend({
     askElle: function(reqType, code) {
@@ -36,7 +32,27 @@ jQuery.extend({
     }
 });
 
+function askElle2(reqType, code) {
+    var result = null;
+    var request = $.ajax({
+        url: "http://" + ormerodIP + "/rr_" + reqType,
+        dataType: 'json',
+        data: {gcode: code},
+    });
+    
+    request.done(function( data ) {
+        
+    });
+}
+
+
 $(document).ready(function() {
+    if ($.support.fileDrop) {
+        fileDrop();
+    } else {
+        alert('Your browser does not support file drag-n-drop :(');
+    }
+
     for (var i = 0; i < maxDataPoints; i++) {
         chartData[0].push([i, 20]);
         chartData[1].push([i, 10]);
@@ -167,12 +183,14 @@ $('div#panicBtn button').on('click', function() {
             paused = false;
             $(this).removeClass('active').text('Pause').attr('value', 'M25');
             $('button#printing').text("Ready :)");
+            $('button#reset').addClass('hidden');
             break;
         case "M25":
             //pause
             paused = true;
             $(this).addClass('active').text('Resume').attr('value', 'M24');
             $('button#printing').text("Paused");
+            $('button#reset').removeClass('hidden');
             break;
     }
     $.askElle('gcode', btnVal);
@@ -181,7 +199,87 @@ $('div#panicBtn button').on('click', function() {
 $("div#gFileList, div#gFileList2, div#gFileList3").on('click', 'button#gFileLink', function() {
     var filename = $(this).text();
     $.askElle('gcode', "M23 " + filename + "\nM24");
+}).on('click', 'span#fileDelete', function() {
+    var filename = $(this).parent().text();
+    $.askElle('gcode', "M30 " + filename);
+    listGFiles();
 });
+
+$("button#filereload").on('click', function() {
+    listGFiles();
+});
+
+function isNumber(n) {
+    return !isNaN(parseFloat(n)) && isFinite(n);
+}
+
+function fileDrop() {
+    $('#dropTarget').fileDrop({
+        decodeBase64: true,
+        removeDataUriScheme: true,
+        onFileRead: function(fileCollection) {
+            //Loop through each file that was dropped
+            $.each(fileCollection, function(i) {
+                var ext = getFileExt(this.name);
+                var fname = getFileName(this.name);
+                if (ext !== "g" && ext !== "gco" && ext !== "gcode") {
+                    alert('Not a G Code file');
+                    return false;
+                } else {
+                    if (fname > 8) {
+                        fname = fname.substr(0, 8);
+                    }
+                    fileUpload(this.data, fname + '.g');
+                }
+            });
+        },
+        overClass: 'btn-success'
+    });
+}
+
+function fileUpload(gcodes, filename) {
+    var lines = gcodes.split(/\r\n|\r|\n/g);
+    var line, codeType;
+    var lineCount = lines.length;
+    $.askElle('gcode', "M28 " + filename);
+    for (var i = 0; i < lineCount; i++) {
+        line = lines[i].split(';');
+        codeType = line[0].substr(0, 1);
+        if (codeType === "G" || codeType === "M" || codeType === "T") {
+            //test += line+"\n";
+            $.askElle('gcode', line[0] + "\n");
+        }
+    }
+    $.askElle('gcode', "M29");
+    listGFiles();
+}
+
+function listGFiles() {
+    var count = 0;
+    var list = "gFileList";
+    $('div#gFileList').html("");
+    var result = $.askElle("files", "");
+    result.files.forEach(function(item) {
+        count++;
+        switch (true) {
+            case (count > 14):
+                list = "gFileList2";
+                break;
+            case (count > 29):
+                list = "gFileList3";
+                break;
+        }
+        $('div#' + list).append('<button type="button" class="btn btn-default" id="gFileLink"><span class="pull-left">' + item + '</span><span id="fileDelete" class="glyphicon glyphicon-trash pull-right"></span></button>');
+    });
+}
+
+function getFileExt(filename) {
+    return filename.split('.').pop();
+}
+
+function getFileName(filename) {
+    return filename.split('.').shift();
+}
 
 function disableButtons(which) {
     switch (which) {
@@ -250,7 +348,6 @@ function updatePage() {
         } else if (status.poll[0] === "I" && paused) {
             //paused
             printing = true;
-            $('button#reset').removeClass('hidden');
             $('button#printing').removeClass('btn-danger').removeClass('btn-success').addClass('btn-warning').text("Paused");
             enableButtons('panic');
             enableButtons('head');
@@ -265,9 +362,9 @@ function updatePage() {
             if (isNumber(objHeight)) {
                 layerCount = objHeight / layerHeight;
                 currentLayer = Math.ceil(status.poll[5] / layerHeight);
-                setProgress((currentLayer / layerCount) * 100);
+                setProgress((currentLayer / layerCount) * 100, currentLayer, layerCount);
             } else {
-               setProgress(0);
+                setProgress(0, 0, 0);
             }
         } else {
             //unknown state
@@ -289,7 +386,12 @@ function updatePage() {
     }
 }
 
-function setProgress(percent) {
+function setProgress(percent, layer, layers) {
+    if (layer === 0) {
+        $('span#progressText').text(percent + "% Complete, Layer " + layer + " of " + layers).attr('title', "Layer " + layer + " of " + layers);
+    } else {
+        $('span#progressText').text("").attr('title', "");
+    }
     $('div#progress').css("width", percent + "%");
 }
 
@@ -304,25 +406,6 @@ function parseChartData() {
         res[1].push([i, chartData[1][i]]);
     }
     return res;
-}
-
-function listGFiles() {
-    var count = 0;
-    var list = "gFileList";
-    $('div#gFileList').html("");
-    var result = $.askElle("files", "");
-    result.files.forEach(function(item) {
-        count++;
-        switch (true) {
-            case (count > 14):
-                list = "gFileList2";
-                break;
-            case (count > 29):
-                list = "gFileList3";
-                break;
-        }
-        $('div#' + list).append('<button type="button" class="btn btn-default" id="gFileLink">' + item + '</button>');
-    });
 }
 
 function poll()
