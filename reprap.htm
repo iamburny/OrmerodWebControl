@@ -33,21 +33,7 @@
                 <!-- Collect the nav links, forms, and other content for toggling -->
                 <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
                     <div class="col-md-2">
-                        <ul class="nav navbar-nav">
-                            <li class="active"><a href="#">Control</a></li>
-                            <li class="dropdown">
-                                <a href="#" class="dropdown-toggle" data-toggle="dropdown">Settings <b class="caret"></b></a>
-                                <ul class="dropdown-menu">
-                                    <li><a href="#">XY Axis Speed</a></li>
-                                    <li><a href="#">Z Axis Speed</a></li>
-                                    <li><a href="#">Layer Height</a></li>
-                                    <li class="divider"></li>
-                                    <li><a href="#">Poll every 2s</a></li>
-                                    <li class="divider"></li>
-                                    <li><a href="#">More...</a></li>
-                                </ul>
-                            </li>
-                        </ul>
+                        <a class="navbar-brand" href="#" id="hostLocation"></a>
                     </div>
                     <div class="col-md-2">
                         <form class="navbar-form navbar-left">
@@ -90,31 +76,33 @@
                         <div class="col-md-12">
                             <button type="button" value='M25' class="btn btn-info" title='Pause printing, Resumeable'>Pause</button>
                             <button type="button" value='M112' class="btn btn-danger disabled" title='M112, moves in progress are immediately terminated, shuts down, motors/heaters turned off. Requires reset button on duet to restart'>STOP!</button>
+                            <button type="button" value='reset' id='reset' class="btn btn-success hidden" title='Pause before reset'>Reset</button>                            
                         </div>
-                        <div class="col-md-12">
-                            <button type="button" value='reset' id='reset' class="btn btn-success hidden" title='Pause before reset'>Reset</button>
-                        </div>
+
+                        <table class="table table-condensed">
+                            <tr>
+                                <td class="col-md-3 pull-left" >Enter Height</td>
+                                <td>
+                                    <input type="text" id="objheight" class="col-md-2 form-control" placeholder="mm" title="Enter Object Height in mm, to see progress">
+                                </td>
+                                <td class="col-md-7">
+                                    
+                                </td>
+                            </tr>
+                        </table>
                     </div>
 
                     <div class="col-md-5">    
-                        <table class="table table-bordered">
+                        <table class="table table-bordered" id="headPos">
                             <tbody>
                                 <tr>
-                                    <th colspan="8" class="col-md-9"><strong>Current Head Position (mm)</strong></th>
-                                    <th class="col-md-3">Enter Height</th>
+                                    <th class="text-center">X</th><th class="text-center">Y</th><th class="text-center">Z</th><th class="text-center">E</th>
                                 </tr>
                                 <tr>
-                                    <td> X: </td>
-                                    <td><span id="Xpos">??</span></td>
-                                    <td> Y: </td>
-                                    <td><span id="Ypos">??</span></td>
-                                    <td> Z: </td>
-                                    <td><span id="Zpos">??</span></td>
-                                    <td> E: </td>
-                                    <td><span id="Epos">??</span></td>
-                                    <td>
-                                        <input type="text" id="objheight" class="form-control" placeholder="Height mm" title="Enter Object Height in mm, to see progress">
-                                    </td>
+                                    <td class="text-center"><span id="Xpos">0</span></td>
+                                    <td class="text-center"><span id="Ypos">0</span></td>
+                                    <td class="text-center"><span id="Zpos">0</span></td>
+                                    <td class="text-center"><span id="Epos">0</span></td>
                                 </tr>
                             </tbody>
                         </table>         
@@ -209,7 +197,7 @@
 
                                     <tr>
                                         <td><span id="bedTxt">Bed</span></td>
-                                        <td><span id="bedTemp">??</span><sup>o</sup>C</td>
+                                        <td><span id="bedTemp">0</span><sup>o</sup>C</td>
                                         <td>
                                             <div class="input-group" id="bedTemperature">
                                                 <div class="input-group-btn">
@@ -230,7 +218,7 @@
 
                                     <tr>
                                         <td><span id="headTxt">Head</span></td>
-                                        <td><span id="headTemp">??</span><sup>o</sup>C</td>
+                                        <td><span id="headTemp">0</span><sup>o</sup>C</td>
                                         <td>
                                             <div class="input-group" id="headTemperature">
                                                 <div class="input-group-btn">
