@@ -3,7 +3,7 @@
 var polling = false;
 var printing = false;
 var paused = false;
-var ormerodIP = "192.168.1.144";
+var ormerodIP;
 var layerHeight = 0.24;
 var layerCount;
 var currentLayer;
@@ -33,20 +33,21 @@ jQuery.extend({
 });
 
 function askElle2(reqType, code) {
-    var result = null;
     var request = $.ajax({
         url: "http://" + ormerodIP + "/rr_" + reqType,
-        dataType: 'json',
+        dataType: 'jsonp',
         data: {gcode: code},
     });
     
     request.done(function( data ) {
-        
+        return data;
     });
 }
 
-
 $(document).ready(function() {
+    ormerodIP = location.host;
+    $('a#hostLocation').text(ormerodIP);
+    
     if ($.support.fileDrop) {
         fileDrop();
     } else {
@@ -331,7 +332,7 @@ function updatePage() {
             message('info', "<strong>Disconnected</strong> Page not being updated");
             $('button#connect').text("Connect");
         }
-        $('span[id$="Temp"], span[id$="pos"]').text("??");
+        $('span[id$="Temp"], span[id$="pos"]').text("0");
         disableButtons("head");
         disableButtons("panic");
     } else {
