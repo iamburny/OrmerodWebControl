@@ -35,23 +35,28 @@
                     <div class="col-md-2">
                         <a class="navbar-brand" href="#" id="hostLocation"></a>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-1">
                         <form class="navbar-form navbar-left">
-                            <button type="button" id="dropTarget" class="btn btn-default">Drag & drop G file here</button>
+                            <button type="button" id="dropTarget" class="btn btn-default">G file drop</button>
                         </form>
                     </div>
 
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <form class="navbar-form navbar-left">
                             <div class="input-group">
                                 <div class="input-group-btn" id='sendG'>
                                     <button type="button" id='txtinput' class="btn btn-default">Send GCode</button>
                                     <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown"><span class="caret"></span></button>
                                     <ul class="dropdown-menu">
-                                        <li><a href="#" id='gLink' title="Z Zero Pos">G1 X60 Y20</a></li>
                                         <li><a href="#" id='gLink' title="Set Z Zero">G92 Z0</a></li>
-                                        <li><a href="#" id='gLink' title="Show Config">M503</a></li>
+                                        <li><a href="#" id='gLink' title="Show Config">G1 X0 Y0</a></li>
+                                        <li><a href="#" id='gLink' title="Show Config">G1 Z0</a></li>
                                         <li class="divider"></li>
+                                        <li><a href="#" id='gLink' title="Clear all Bed Comp">M561</a></li>
+                                        <li><a href="#" id='gLink' title="Bed Comp P0">G1 X60 Y20</a></li>
+                                        <li><a href="#" id='gLink' title="Bed Comp P1">G1 X60 Y170</a></li>
+                                        <li><a href="#" id='gLink' title="Bed Comp P2">G1 X170 Y170</a></li>
+                                        <li><a href="#" id='gLink' title="Bed Comp P3">G1 X170 Y20</a></li>
                                         <li class='disabled'><a href="#">Add Code</a></li>
                                     </ul>
                                 </div><!-- /btn-group -->
@@ -74,18 +79,18 @@
                 <div class="row">
                     <div class="col-md-3 btn-group" id="panicBtn">
                         <div class="col-md-12">
-                            <button type="button" value='M25' class="btn btn-info" title='Pause printing, Resumeable'>Pause</button>
-                            <button type="button" value='M112' class="btn btn-danger disabled" title='M112, moves in progress are immediately terminated, shuts down, motors/heaters turned off. Requires reset button on duet to restart'>STOP!</button>
+                            <button type="button" value='M25' id='pause' class="btn btn-info" title='Pause printing, Resumeable'>Pause</button>
+                            <button type="button" value='M112' id='stop' class="btn btn-danger disabled" title='M112, moves in progress are immediately terminated, shuts down, motors/heaters turned off. Requires reset button on duet to restart'>STOP!</button>
                             <button type="button" value='reset' id='reset' class="btn btn-success hidden" title='Pause before reset'>Reset</button>                            
                         </div>
 
                         <table class="table table-condensed">
                             <tr>
-                                <td class="col-md-3 pull-left" >Enter Height</td>
+                                <td class="col-md-4 pull-left" >Enter Height</td>
                                 <td>
                                     <input type="text" id="objheight" class="col-md-2 form-control" placeholder="mm" title="Enter Object Height in mm, to see progress">
                                 </td>
-                                <td class="col-md-7">
+                                <td class="col-md-6">
                                     
                                 </td>
                             </tr>
@@ -205,8 +210,8 @@
                                                     <button type="button" class="btn btn-default dropdown-toggle disabled" data-toggle="dropdown"><span class="caret"></span></button>
                                                     <ul class="dropdown-menu">
                                                         <li><a href="#" id='bedTempLink' title='off'>0</a></li>
-                                                        <li><a href="#" id='bedTempLink' title='PLA'>57</a></li>
-                                                        <li><a href="#" id='bedTempLink' title='ABS'>110</a></li>
+                                                        <li><a href="#" id='bedTempLink' title='PLA'>65</a></li>
+                                                        <li><a href="#" id='bedTempLink' title='ABS'>120</a></li>
                                                         <li class="divider"></li>
                                                         <li class="disabled"><a href="#">Add Temp</a></li>                                                    
                                                     </ul>

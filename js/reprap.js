@@ -179,10 +179,11 @@ $('div#panicBtn button').on('click', function() {
         case "reset":
             //reset printing after pause
             printing = false;
+            btnVal="";
         case "M24":
             //resume
             paused = false;
-            $(this).removeClass('active').text('Pause').attr('value', 'M25');
+            $('button#pause').removeClass('active').text('Pause').attr('value', 'M25');
             $('button#printing').text("Ready :)");
             $('button#reset').addClass('hidden');
             break;
@@ -258,7 +259,7 @@ function fileUpload(gcodes, filename) {
 function listGFiles() {
     var count = 0;
     var list = "gFileList";
-    $('div#gFileList').html("");
+    $('div#gFileList, div#gFileList2, div#gFileList3').html("");
     var result = $.askElle("files", "");
     result.files.forEach(function(item) {
         count++;
