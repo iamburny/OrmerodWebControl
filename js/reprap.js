@@ -8,10 +8,12 @@ var layerHeight = 0.24;
 var layerCount;
 var currentLayer;
 var objHeight;
+var layerData = [];
+var printStartTime;
 
 //Temp Chart
 var chart;
-var maxDataPoints = 100;
+var maxDataPoints = 200;
 var chartData = [[], []];
 var bedColour = "#454BFF"; //blue
 var headColour = "#FC2D2D" //red
@@ -32,18 +34,6 @@ jQuery.extend({
     }
 });
 
-function askElle2(reqType, code) {
-    var request = $.ajax({
-        url: "http://" + ormerodIP + "/rr_" + reqType,
-        dataType: 'jsonp',
-        data: {gcode: code},
-    });
-    
-    request.done(function( data ) {
-        return data;
-    });
-}
-
 $(document).ready(function() {
     ormerodIP = location.host;
     $('a#hostLocation').text(ormerodIP);
@@ -54,11 +44,13 @@ $(document).ready(function() {
         alert('Your browser does not support file drag-n-drop :(');
     }
 
+    //fill chart with dummy data
     for (var i = 0; i < maxDataPoints; i++) {
         chartData[0].push([i, 20]);
         chartData[1].push([i, 10]);
     }
 
+    //chart line colours
     $('#bedTxt').css("color", bedColour);
     $('#headTxt').css("color", headColour);
 
@@ -71,8 +63,6 @@ $(document).ready(function() {
             borderWidth: 0
         }
     });
-    //$('div#feed input#2').button('toggle');
-    //$('div#feed input#forward').button('toggle');    
 });
 
 $('#connect').on('click', function() {
@@ -87,6 +77,7 @@ $('#connect').on('click', function() {
     }
 });
 
+//temp controls
 $('div#bedTemperature button#setBedTemp, div#bedTemperature a#bedTempLink').on('click', function() {
     var code;
     if (this.nodeName === 'BUTTON') {
@@ -96,7 +87,6 @@ $('div#bedTemperature button#setBedTemp, div#bedTemperature a#bedTempLink').on('
     }
     $.askElle('gcode', "M140 S" + code);
 });
-
 $('div#headTemperature button#setHeadTemp, div#headTemperature a#headTempLink').on('click', function() {
     var head = 0;
     var code;
@@ -107,7 +97,21 @@ $('div#headTemperature button#setHeadTemp, div#headTemperature a#headTempLink').
     }
     $.askElle('gcode', "G10 P" + head + " S" + code + "\nT" + head);
 });
+$('input#bedTempInput').keydown(function(event) {
+    if (event.which === 13) {
+        event.preventDefault();
+        $.askElle('gcode', "M140 S" + $(this).val());
+    }
+});
+$('input#headTempInput').keydown(function(event) {
+    var head = 0;
+    if (event.which === 13) {
+        event.preventDefault();
+        $.askElle('gcode', "G10 P" + head + " S" + $(this).val() + "\nT" + head);
+    }
+});
 
+//feed controls
 $('div#feed button#feed').on('click', function() {
     var amount = $(this).val();
     var dir = "";
@@ -119,6 +123,7 @@ $('div#feed button#feed').on('click', function() {
     $.askElle('gcode', code);
 });
 
+//gcodes
 $('div#sendG button#txtinput, div#sendG a#gLink').on('click', function() {
     var code;
     if (this.nodeName === 'BUTTON') {
@@ -128,7 +133,6 @@ $('div#sendG button#txtinput, div#sendG a#gLink').on('click', function() {
     }
     $.askElle('gcode', code);
 });
-
 $('input#gInput').keydown(function(event) {
     if (event.which === 13) {
         event.preventDefault();
@@ -136,21 +140,7 @@ $('input#gInput').keydown(function(event) {
     }
 });
 
-$('input#bedTempInput').keydown(function(event) {
-    if (event.which === 13) {
-        event.preventDefault();
-        $.askElle('gcode', "M140 S" + $(this).val());
-    }
-});
-
-$('input#headTempInput').keydown(function(event) {
-    var head = 0;
-    if (event.which === 13) {
-        event.preventDefault();
-        $.askElle('gcode', "G10 P" + head + " S" + $(this).val() + "\nT" + head);
-    }
-});
-
+//move controls
 $('table#moveHead button').on('click', function() {
     var btnVal = $(this).attr('value');
     if (btnVal) {
@@ -168,6 +158,7 @@ $('table#moveHead button').on('click', function() {
     }
 });
 
+//panic buttons
 $('div#panicBtn button').on('click', function() {
     var btnVal = $(this).attr('value');
     switch (btnVal) {
@@ -180,6 +171,10 @@ $('div#panicBtn button').on('click', function() {
             //reset printing after pause
             printing = false;
             btnVal="";
+            //switch off heaters
+            $.askElle('gcode', "M140 S0"); //bed off
+            $.askElle('gcode', "G10 P0 S0\nT0"); //head 0 off
+            resetLayerData();
         case "M24":
             //resume
             paused = false;
@@ -198,15 +193,16 @@ $('div#panicBtn button').on('click', function() {
     $.askElle('gcode', btnVal);
 });
 
+//g files
 $("div#gFileList, div#gFileList2, div#gFileList3").on('click', 'button#gFileLink', function() {
     var filename = $(this).text();
     $.askElle('gcode', "M23 " + filename + "\nM24");
+    resetLayerData();
 }).on('click', 'span#fileDelete', function() {
     var filename = $(this).parent().text();
     $.askElle('gcode', "M30 " + filename);
     listGFiles();
 });
-
 $("button#filereload").on('click', function() {
     listGFiles();
 });
@@ -338,8 +334,9 @@ function updatePage() {
         disableButtons("panic");
     } else {
         $('button#connect').removeClass('btn-danger').addClass('btn-success').text("Connected");
-        ; //Connected Hoorahhh!
+        //Connected Hoorahhh!
         message('hide', '');
+        message('info', 'Firmware Info<br>'+status.resp );
         if (status.poll[0] === "I" && !paused) {
             //inactive, not printing
             printing = false;
@@ -361,24 +358,27 @@ function updatePage() {
             enableButtons('panic');
             disableButtons("head");
             disableButtons("gfilelist");
+            currentLayer = whichLayer(status.poll[5]);
             if (isNumber(objHeight)) {
                 layerCount = Math.ceil(objHeight / layerHeight);
-                currentLayer = Math.ceil(status.poll[5] / layerHeight);
                 setProgress(Math.ceil((currentLayer / layerCount) * 100), currentLayer, layerCount);
             } else {
                 setProgress(0, 0, 0);
             }
+            layers(currentLayer);
         } else {
             //unknown state
             printing = paused = false;
             $('button#printing').removeClass('btn-warning').removeClass('btn-success').addClass('btn-danger').text("Error!");
         }
+       
         $('span#bedTemp').text(status.poll[1]);
         $('span#headTemp').text(status.poll[2]);
         $('span#Xpos').text(status.poll[3]);
         $('span#Ypos').text(status.poll[4]);
         $('span#Zpos').text(status.poll[5]);
         $('span#Epos').text(status.poll[6]);
+        $('span#probe').text(status.probe);
 
         //Temp chart stuff
         chartData[0].push(parseFloat(status.poll[1]));
@@ -387,6 +387,41 @@ function updatePage() {
         chart.draw();
     }
 }
+
+function whichLayer(currZ) {
+    return Math.round(currZ / layerHeight);
+}
+
+function resetLayerData() {
+    //clear layercount
+    layerData = [];
+    printStartTime = null;
+}
+
+function layers(layer) {
+    var d = new Date();
+    var utime = d.getTime();
+    if (layer === 1 && !printStartTime) {
+        printStartTime = utime;
+    }
+    if (printStartTime) {
+        $('span#elapsed').text(tsToHMS(utime - printStartTime) + "s");
+        layerData.push(layer, utime);
+    }
+    //if (printStartTime && layerData.length > 1) {
+    //    $('span#lastlayer').text(tsToHMS(layerData[layerData.length-1] - layerData[layerData.length-2]) + "s");
+    //}
+    
+}
+
+function tsToHMS(timestamp) {
+    timestamp = timestamp /1000;
+    var hours = Math.round(timestamp / 3600);
+    timestamp %= 3600;
+    var minutes = Math.round(timestamp / 60);
+    var seconds = Math.round(timestamp % 60); 
+    return hours+":"+minutes+":"+seconds;
+} 
 
 function setProgress(percent, layer, layers) {
     if (layer !== 0) {
@@ -410,8 +445,7 @@ function parseChartData() {
     return res;
 }
 
-function poll()
-{
+function poll(){
     setTimeout(function() {
         if (polling) {
             updatePage();
@@ -419,3 +453,5 @@ function poll()
         }
     }, 2000);
 }
+
+//Layer data collection

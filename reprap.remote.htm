@@ -3,15 +3,16 @@
     <head>
         <title>RepRapPro</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
         <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css" rel="stylesheet" type="text/css" />
         <link href="//iamburny.github.io/OrmerodWebControl/css/main.css" rel="stylesheet" type="text/css" />
-        <link href="//iamburny.github.io/OrmerodWebControl/favicon.ico" rel="icon" type="image/x-icon" />  
+        <link href="//iamburny.github.io/OrmerodWebControl/favicon.ico" rel="icon" type="image/x-icon" />       
         <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
         <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
         <!--[if lt IE 9]>
           <script src="//oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
           <script src="//oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
-        <![endif]-->        
+        <![endif]-->
     </head>
     <body>
         <!-- Wrap all page content here -->
@@ -33,23 +34,28 @@
                     <div class="col-md-2">
                         <a class="navbar-brand" href="#" id="hostLocation"></a>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-1">
                         <form class="navbar-form navbar-left">
-                            <button type="button" id="dropTarget" class="btn btn-default">Drag & drop G file here</button>
+                            <button type="button" id="dropTarget" class="btn btn-default">G file drop</button>
                         </form>
                     </div>
 
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <form class="navbar-form navbar-left">
                             <div class="input-group">
                                 <div class="input-group-btn" id='sendG'>
                                     <button type="button" id='txtinput' class="btn btn-default">Send GCode</button>
                                     <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown"><span class="caret"></span></button>
                                     <ul class="dropdown-menu">
-                                        <li><a href="#" id='gLink' title="Z Zero Pos">G1 X60 Y20</a></li>
                                         <li><a href="#" id='gLink' title="Set Z Zero">G92 Z0</a></li>
-                                        <li><a href="#" id='gLink' title="Show Config">M503</a></li>
+                                        <li><a href="#" id='gLink' title="Show Config">G1 X0 Y0</a></li>
+                                        <li><a href="#" id='gLink' title="Show Config">G1 Z0</a></li>
                                         <li class="divider"></li>
+                                        <li><a href="#" id='gLink' title="Clear all Bed Comp">M561</a></li>
+                                        <li><a href="#" id='gLink' title="Bed Comp P0">G1 X60 Y20</a></li>
+                                        <li><a href="#" id='gLink' title="Bed Comp P1">G1 X60 Y170</a></li>
+                                        <li><a href="#" id='gLink' title="Bed Comp P2">G1 X170 Y170</a></li>
+                                        <li><a href="#" id='gLink' title="Bed Comp P3">G1 X170 Y20</a></li>
                                         <li class='disabled'><a href="#">Add Code</a></li>
                                     </ul>
                                 </div><!-- /btn-group -->
@@ -72,8 +78,8 @@
                 <div class="row">
                     <div class="col-md-3 btn-group" id="panicBtn">
                         <div class="col-md-12">
-                            <button type="button" value='M25' class="btn btn-info" title='Pause printing, Resumeable'>Pause</button>
-                            <button type="button" value='M112' class="btn btn-danger disabled" title='M112, moves in progress are immediately terminated, shuts down, motors/heaters turned off. Requires reset button on duet to restart'>STOP!</button>
+                            <button type="button" value='M25' id='pause' class="btn btn-info" title='Pause printing, Resumeable'>Pause</button>
+                            <button type="button" value='M112' id='stop' class="btn btn-danger disabled" title='M112, moves in progress are immediately terminated, shuts down, motors/heaters turned off. Requires reset button on duet to restart'>STOP!</button>
                             <button type="button" value='reset' id='reset' class="btn btn-success hidden" title='Pause before reset'>Reset</button>                            
                         </div>
 
@@ -83,7 +89,7 @@
                                 <td>
                                     <input type="text" id="objheight" class="col-md-2 form-control" placeholder="mm" title="Enter Object Height in mm, to see progress">
                                 </td>
-                                <td class="col-md-7">
+                                <td class="col-md-6">
                                     
                                 </td>
                             </tr>
@@ -94,17 +100,23 @@
                         <table class="table table-bordered" id="headPos">
                             <tbody>
                                 <tr>
-                                    <th class="text-center">X</th><th class="text-center">Y</th><th class="text-center">Z</th><th class="text-center">E</th>
+                                    <th class="col-md-2 text-center">X</th>
+                                    <th class="col-md-2 text-center">Y</th>
+                                    <th class="col-md-2 text-center">Z</th>
+                                    <th class="col-md-2 text-center">E</th>
+                                    <th class="col-md-2 text-center">Zprobe</th>
                                 </tr>
                                 <tr>
                                     <td class="text-center"><span id="Xpos">0</span></td>
                                     <td class="text-center"><span id="Ypos">0</span></td>
                                     <td class="text-center"><span id="Zpos">0</span></td>
                                     <td class="text-center"><span id="Epos">0</span></td>
+                                    <td class="text-center"><span id="probe">0</span></td>
                                 </tr>
                             </tbody>
                         </table>         
                     </div>
+                    
                     <div class="col-md-4 alert alert-dismissable" id="messageBox">
 
                     </div>
@@ -121,10 +133,10 @@
                         <table class="table table-bordered" id="moveHead">
                             <tbody>
                                 <tr>
-                                    <td colspan="3">
+                                    <th colspan="3">
                                         <div class="col-md-1"><button type="button" value='M18' id='motoroff' class="btn btn-primary btn-sm disabled" title='Disables stepper motors and allows axis to move freely.'>Motors off</button></div>
-                                        <div class="col-md-11 text-center"><strong>Move Head Position</strong></div>
-                                    </td>
+                                        <div class="col-md-11 text-center">Move Head Position</div>
+                                    </th>
                                 </tr>                                
                                 <tr>
                                     <td><button type="button" value="G28 X0" class="btn btn-primary center-block disabled">Home X</button></td>
@@ -190,7 +202,7 @@
                             <table class="table table-bordered" id="temp">
                                 <tbody>
                                     <tr>
-                                        <td colspan="3"><strong>Temperatures</strong></td>
+                                        <th colspan="3">Temperatures</th>
                                     </tr>
 
                                     <tr>
@@ -203,8 +215,8 @@
                                                     <button type="button" class="btn btn-default dropdown-toggle disabled" data-toggle="dropdown"><span class="caret"></span></button>
                                                     <ul class="dropdown-menu">
                                                         <li><a href="#" id='bedTempLink' title='off'>0</a></li>
-                                                        <li><a href="#" id='bedTempLink' title='PLA'>57</a></li>
-                                                        <li><a href="#" id='bedTempLink' title='ABS'>110</a></li>
+                                                        <li><a href="#" id='bedTempLink' title='PLA'>65</a></li>
+                                                        <li><a href="#" id='bedTempLink' title='ABS'>120</a></li>
                                                         <li class="divider"></li>
                                                         <li class="disabled"><a href="#">Add Temp</a></li>                                                    
                                                     </ul>
@@ -249,7 +261,7 @@
                             <table class="table table-bordered" id="extruder">
                                 <tbody>
                                     <tr>
-                                        <td colspan="2"><strong>Extruder Control</strong></td>
+                                        <th colspan="2">Extruder Control</th>
                                     </tr>
 
                                     <tr>
@@ -293,7 +305,18 @@
                                         </td>
                                     </tr>
                                 </tbody>
-                            </table>   
+                            </table>
+                            
+                            <table class="table table-bordered" id="layers">
+                                <tbody>
+                                    <tr>
+                                        <th>Print Duration</th><th>Last Layer</th>
+                                    </tr>
+                                    <tr>
+                                        <td><span id="elapsed">0s</span></td><td><span id="lastlayer">0s</span></td>
+                                    </tr>                                    
+                                </tbody>
+                            </table>
                         </div>                        
                     </div>
 
@@ -314,6 +337,10 @@
                 </div>
             </div>
         </div>  
+
+        <!-- Bootstrap core JavaScript
+        ================================================== -->
+        <!-- Placed at the end of the document so the pages load faster -->
         <script src="//code.jquery.com/jquery-1.10.2.min.js"></script>
         <script src="//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js"></script>
         <script src="//cdnjs.cloudflare.com/ajax/libs/flot/0.8.1/jquery.flot.min.js"></script>
