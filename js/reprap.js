@@ -119,7 +119,7 @@ $('div#feed button#feed').on('click', function() {
         dir = "-";
     }
     var feedRate = " F" + $('input[name="speed"]:checked').val();
-    var code = "M120\nG83\nG1 E" + dir + amount + feedRate + "\nM121";
+    var code = "M120\nM83\nG1 E" + dir + amount + feedRate + "\nM121";
     $.askElle('gcode', code);
 });
 
