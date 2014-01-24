@@ -37,7 +37,7 @@ jQuery.extend({
 $(document).ready(function() {
     ormerodIP = location.host;
     $('a#hostLocation').text(ormerodIP);
-    
+
     if ($.support.fileDrop) {
         fileDrop();
     } else {
@@ -63,6 +63,16 @@ $(document).ready(function() {
             borderWidth: 0
         }
     });
+
+    chart2 = $.plot("#layerChart", layerData, {
+        series: {shadowSize: 0},
+        grid: {
+            borderWidth: 0
+        }
+    });
+    
+    message('success', 'Page Load Complete');
+    $('button#connect, button#printing').removeClass('disabled');
 });
 
 $('#connect').on('click', function() {
@@ -73,6 +83,7 @@ $('#connect').on('click', function() {
         polling = true;
         updatePage();
         listGFiles();
+        $.askElle("gcode", "M115");
         poll();
     }
 });
@@ -131,12 +142,14 @@ $('div#sendG button#txtinput, div#sendG a#gLink').on('click', function() {
     } else {
         code = $(this).text();
     }
-    $.askElle('gcode', code);
+    $.askElle('gcode', code); //send gcode
 });
 $('input#gInput').keydown(function(event) {
     if (event.which === 13) {
         event.preventDefault();
-        $.askElle('gcode', $(this).val());
+        var result = $.askElle('gcode', $(this).val());
+        if (result.resp)
+            message('info', "<strong>result of " + code + "</strong><br>" + result.resp);
     }
 });
 
@@ -170,7 +183,7 @@ $('div#panicBtn button').on('click', function() {
         case "reset":
             //reset printing after pause
             printing = false;
-            btnVal="";
+            btnVal = "";
             //switch off heaters
             $.askElle('gcode', "M140 S0"); //bed off
             $.askElle('gcode', "G10 P0 S0\nT0"); //head 0 off
@@ -194,10 +207,14 @@ $('div#panicBtn button').on('click', function() {
 });
 
 //g files
-$("div#gFileList, div#gFileList2, div#gFileList3").on('click', 'button#gFileLink', function() {
+$("div#gFileList, div#gFileList2, div#gFileList3, div#gFileList4").on('click', 'button#gFileLink', function() {
     var filename = $(this).text();
     $.askElle('gcode', "M23 " + filename + "\nM24");
     resetLayerData();
+}).on('mouseover', 'span#fileDelete', function() {
+    $(this).parent().addClass('btn-danger');
+}).on('mouseout', 'span#fileDelete', function() {
+    $(this).parent().removeClass('btn-danger');
 }).on('click', 'span#fileDelete', function() {
     var filename = $(this).parent().text();
     $.askElle('gcode', "M30 " + filename);
@@ -236,6 +253,8 @@ function fileDrop() {
 }
 
 function fileUpload(gcodes, filename) {
+    var d = new Date();
+    var utime = d.getTime();
     var lines = gcodes.split(/\r\n|\r|\n/g);
     var line, codeType;
     var lineCount = lines.length;
@@ -250,21 +269,28 @@ function fileUpload(gcodes, filename) {
     }
     $.askElle('gcode', "M29");
     listGFiles();
+    d = new Date();
+    var utime2 = d.getTime();
+    $('span#elapsed').text("Uploaded " + filename + "\n in " + tsToHMS(utime2 - utime));
 }
 
 function listGFiles() {
+    var filesPerCol = 10;
     var count = 0;
     var list = "gFileList";
-    $('div#gFileList, div#gFileList2, div#gFileList3').html("");
+    $('div#gFileList, div#gFileList2, div#gFileList3, div#gFileList4').html("");
     var result = $.askElle("files", "");
     result.files.forEach(function(item) {
         count++;
         switch (true) {
-            case (count > 14):
+            case (count > filesPerCol):
                 list = "gFileList2";
                 break;
-            case (count > 29):
+            case (count > filesPerCol * 2):
                 list = "gFileList3";
+                break;
+            case (count > filesPerCol * 3):
+                list = "gFileList4";
                 break;
         }
         $('div#' + list).append('<button type="button" class="btn btn-default" id="gFileLink"><span class="pull-left">' + item + '</span><span id="fileDelete" class="glyphicon glyphicon-trash pull-right"></span></button>');
@@ -309,11 +335,23 @@ function enableButtons(which) {
 }
 
 function message(type, text) {
-    $('div#messageBox').removeClass('alert-success alert-info alert-warning alert-danger');
-    $('div#messageBox').html("");
-    if (type !== 'hide') {
-        var closeBtn = '<a class="close" data-dismiss="alert" href="#" aria-hidden="true">&times;</a>';
-        $('div#messageBox').addClass('alert-' + type).html(closeBtn + text);
+    var d = new Date();
+    var time = zeroPrefix(d.getHours()) +":"+ zeroPrefix(d.getMinutes()) + ":" + zeroPrefix(d.getSeconds());
+    $('div#messages').append(time+" <span class='alert-" + type +"'>"+text+"</span><br />");
+}
+
+function parseResponse(response) {
+    switch (true) {
+        case response.indexOf('Firmware') > 0:
+            if ($('p#firmVer').text() === "") {
+                var res = response.replace(/ /g, "<br />");
+                message('info', '<strong>M115</strong>\n' + res);
+                $('p#firmVer').text(response);
+            }
+            break;
+        default:
+            message('info', response);
+            break;
     }
 }
 
@@ -335,8 +373,10 @@ function updatePage() {
     } else {
         $('button#connect').removeClass('btn-danger').addClass('btn-success').text("Connected");
         //Connected Hoorahhh!
-        message('hide', '');
-        message('info', 'Firmware Info<br>'+status.resp );
+        if (status.resp) {
+            parseResponse(status.resp);
+        }
+
         if (status.poll[0] === "I" && !paused) {
             //inactive, not printing
             printing = false;
@@ -370,8 +410,9 @@ function updatePage() {
             //unknown state
             printing = paused = false;
             $('button#printing').removeClass('btn-warning').removeClass('btn-success').addClass('btn-danger').text("Error!");
+            message('danger', 'Unknown Poll State : ' + status.poll[0]);
         }
-       
+
         $('span#bedTemp').text(status.poll[1]);
         $('span#headTemp').text(status.poll[2]);
         $('span#Xpos').text(status.poll[3]);
@@ -389,13 +430,28 @@ function updatePage() {
 }
 
 function whichLayer(currZ) {
-    return Math.round(currZ / layerHeight);
+    var n = Math.round(currZ / layerHeight);
+    if (n === currentLayer + 1 && currentLayer) {
+        layerChange();
+    }
+    return n;
 }
 
 function resetLayerData() {
     //clear layercount
     layerData = [];
     printStartTime = null;
+}
+
+function layerChange() {
+    var d = new Date();
+    var utime = d.getTime();
+    if (printStartTime && layerData.length > 1) {
+        var lastLayerEnd = layerData[layerData.length - 1];
+        $('span#lastlayer').text(tsToHMS(utime - lastLayerEnd));
+    }
+    layerData.push(utime);
+    chart2.draw();
 }
 
 function layers(layer) {
@@ -405,29 +461,42 @@ function layers(layer) {
         printStartTime = utime;
     }
     if (printStartTime) {
-        $('span#elapsed').text(tsToHMS(utime - printStartTime) + "s");
-        layerData.push(layer, utime);
+        $('span#elapsed').text(tsToHMS(utime - printStartTime));
     }
-    //if (printStartTime && layerData.length > 1) {
-    //    $('span#lastlayer').text(tsToHMS(layerData[layerData.length-1] - layerData[layerData.length-2]) + "s");
-    //}
-    
 }
 
 function tsToHMS(timestamp) {
-    timestamp = timestamp /1000;
+    timestamp = timestamp / 1000;
     var hours = Math.round(timestamp / 3600);
     timestamp %= 3600;
     var minutes = Math.round(timestamp / 60);
-    var seconds = Math.round(timestamp % 60); 
-    return hours+":"+minutes+":"+seconds;
-} 
+    var seconds = Math.round(timestamp % 60);
+    return hours + "hr " + zeroPrefix(minutes) + "m " + zeroPrefix(seconds) + "s";
+}
+
+function zeroPrefix(num) {
+    var n = num.toString();
+    if (n.length === 1) {
+        return "0" + n;
+    }
+    return n;
+}
 
 function setProgress(percent, layer, layers) {
-    if (layer !== 0) {
-        $('span#progressText').text(percent + "% Complete, Layer " + layer + " of " + layers).attr('title', "Layer " + layer + " of " + layers);
-    } else {
-        $('span#progressText').text("").attr('title', "");
+    var barText = percent + "% Complete, Layer " + layer + " of " + layers;
+    switch (true) {
+        case layer !== 0 && percent <= 40:
+            $('span#offBar').text(barText).attr('title', barText);
+            $('span#progressText').text('').attr('title', '');
+            break;
+        case layer !== 0:
+            $('span#progressText').text(barText).attr('title', barText);
+            $('span#offBar').text('').attr('title', '');
+            break;
+        default:
+            $('span#offBar').text('0% complete, layer 0 of 0');
+            $('span#progressText').text('').attr('title', '');
+            break;
     }
     $('div#progress').css("width", percent + "%");
 }
@@ -445,13 +514,12 @@ function parseChartData() {
     return res;
 }
 
-function poll(){
-    setTimeout(function() {
-        if (polling) {
+function poll() {
+    if (polling) {
+        setTimeout(function() {
             updatePage();
             poll();
-        }
-    }, 2000);
+        }, 2000);
+    }
 }
 
-//Layer data collection
