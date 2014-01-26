@@ -8,13 +8,18 @@ var layerHeight = 0.24;
 var layerCount;
 var currentLayer;
 var objHeight;
-var layerData = [];
 var printStartTime;
+var maxUploadBuffer = 90;
+var maxUploadCommands = 1;
+var dontRepeatLogMessage;
 
-//Temp Chart
+//Temp and Layer Chart
 var chart;
+var chart2;
 var maxDataPoints = 200;
 var chartData = [[], []];
+var maxLayerBars = 50;
+var layerData = [];
 var bedColour = "#454BFF"; //blue
 var headColour = "#FC2D2D" //red
 
@@ -64,12 +69,16 @@ $(document).ready(function() {
         }
     });
 
-    chart2 = $.plot("#layerChart", layerData, {
+    chart2 = $.plot("#layerChart", [{
+            data: layerData,
+            bars: { show: true }
+        }], {
         series: {shadowSize: 0},
-        grid: {
-            borderWidth: 0
-        }
+        xaxis: {minTickSize: 1, tickDecimals:0},
+        yaxis: {minTickSize: 1, min:0, tickDecimals:0},
+        grid: { borderWidth: 0}
     });
+
     
     message('success', 'Page Load Complete');
     $('button#connect, button#printing').removeClass('disabled');
@@ -208,9 +217,14 @@ $('div#panicBtn button').on('click', function() {
 
 //g files
 $("div#gFileList, div#gFileList2, div#gFileList3, div#gFileList4").on('click', 'button#gFileLink', function() {
-    var filename = $(this).text();
-    $.askElle('gcode', "M23 " + filename + "\nM24");
-    resetLayerData();
+    var danger = this.className.indexOf("btn-danger");
+    if (danger < 0) {
+        var filename = $(this).text();
+        $.askElle('gcode', "M23 " + filename + "\nM24");
+        message('success', filename + " sent to print" );
+        $('#tabs a:eq(1)').tab('show');
+        resetLayerData();
+    }
 }).on('mouseover', 'span#fileDelete', function() {
     $(this).parent().addClass('btn-danger');
 }).on('mouseout', 'span#fileDelete', function() {
@@ -218,6 +232,7 @@ $("div#gFileList, div#gFileList2, div#gFileList3, div#gFileList4").on('click', '
 }).on('click', 'span#fileDelete', function() {
     var filename = $(this).parent().text();
     $.askElle('gcode', "M30 " + filename);
+    message('success', filename + " Deleted" );
     listGFiles();
 });
 $("button#filereload").on('click', function() {
@@ -252,7 +267,7 @@ function fileDrop() {
     });
 }
 
-function fileUpload(gcodes, filename) {
+function fileUploadSingle(gcodes, filename) { //single line at a time
     var d = new Date();
     var utime = d.getTime();
     var lines = gcodes.split(/\r\n|\r|\n/g);
@@ -271,11 +286,45 @@ function fileUpload(gcodes, filename) {
     listGFiles();
     d = new Date();
     var utime2 = d.getTime();
-    $('span#elapsed').text("Uploaded " + filename + "\n in " + tsToHMS(utime2 - utime));
+    $('span#elapsed').text("Uploaded " + filename + "\n in " + (utime2 - utime).toHHMMSS());
+}
+
+function fileUpload (gcodes, filename) { //multi line upload based on maxUploadBuffer
+    var d = new Date();
+    var utime = d.getTime();
+    var lines = gcodes.split(/\r\n|\r|\n/g);
+    var line, codeType;
+    var commandsToUpload = 0;
+    var sendLine = "";
+    var lineCount = lines.length;
+    $.askElle('gcode', "M28 " + filename);
+    for (var i = 0; i < lineCount; i++) {
+        line = lines[i].split(';'); //remove comments only want Gcodes
+        codeType = line[0].substr(0, 1);
+        if (codeType === "G" || codeType === "M" || codeType === "T") {
+            if ((sendLine.length + line[0].length) > maxUploadBuffer || commandsToUpload >= maxUploadCommands) {
+                //character limit or command limit hit send it now
+                //alert("["+sendLine.length+"]" +sendLine);
+                $.askElle('gcode', sendLine);
+                commandsToUpload = 1;
+                sendLine = line[0]; //start a new message
+            } else {
+                //more space so append
+                if (sendLine !== "") sendLine += "\n";
+                sendLine += line[0];
+                commandsToUpload += 1;                
+            }
+        }
+    }
+    $.askElle('gcode', "M29");
+    listGFiles();
+    d = new Date();
+    var utime2 = d.getTime();
+    message("info", "uploaded "+ filename + "<br> in " + (utime2 - utime).toHHMMSS());
 }
 
 function listGFiles() {
-    var filesPerCol = 10;
+    var filesPerCol = 6;
     var count = 0;
     var list = "gFileList";
     $('div#gFileList, div#gFileList2, div#gFileList3, div#gFileList4').html("");
@@ -283,14 +332,14 @@ function listGFiles() {
     result.files.forEach(function(item) {
         count++;
         switch (true) {
-            case (count > filesPerCol):
-                list = "gFileList2";
+            case (count > (filesPerCol*3)):
+                list = "gFileList4";
                 break;
-            case (count > filesPerCol * 2):
+            case (count > (filesPerCol*2)):
                 list = "gFileList3";
                 break;
-            case (count > filesPerCol * 3):
-                list = "gFileList4";
+            case (count > filesPerCol):
+                list = "gFileList2";
                 break;
         }
         $('div#' + list).append('<button type="button" class="btn btn-default" id="gFileLink"><span class="pull-left">' + item + '</span><span id="fileDelete" class="glyphicon glyphicon-trash pull-right"></span></button>');
@@ -337,21 +386,24 @@ function enableButtons(which) {
 function message(type, text) {
     var d = new Date();
     var time = zeroPrefix(d.getHours()) +":"+ zeroPrefix(d.getMinutes()) + ":" + zeroPrefix(d.getSeconds());
-    $('div#messages').append(time+" <span class='alert-" + type +"'>"+text+"</span><br />");
+    $('div#messages').prepend(time+" <span class='alert-" + type +"'>"+text+"</span><br />");
 }
 
 function parseResponse(response) {
-    switch (true) {
-        case response.indexOf('Firmware') > 0:
-            if ($('p#firmVer').text() === "") {
-                var res = response.replace(/ /g, "<br />");
-                message('info', '<strong>M115</strong>\n' + res);
-                $('p#firmVer').text(response);
-            }
-            break;
-        default:
-            message('info', response);
-            break;
+    if (dontRepeatLogMessage !== response) {
+        dontRepeatLogMessage = response;
+        switch (true) {
+            case response.indexOf('Firmware') > 0:
+                if ($('p#firmVer').text() === "") {
+                    var res = response.replace(/ /g, "<br />");
+                    message('info', '<strong>M115</strong>\n' + res);
+                    $('p#firmVer').text(response);
+                }
+                break;
+            default:
+                message('info', response);
+                break;
+        }
     }
 }
 
@@ -441,17 +493,21 @@ function resetLayerData() {
     //clear layercount
     layerData = [];
     printStartTime = null;
+    $('span#elapsed, span#lastlayer').text("");
+    
 }
 
 function layerChange() {
     var d = new Date();
     var utime = d.getTime();
-    if (printStartTime && layerData.length > 1) {
-        var lastLayerEnd = layerData[layerData.length - 1];
-        $('span#lastlayer').text(tsToHMS(utime - lastLayerEnd));
-    }
     layerData.push(utime);
-    chart2.draw();
+    if (printStartTime && layerData.length > 1) {
+        var lastLayerEnd = layerData[layerData.length - 2];
+        $('span#lastlayer').text((utime - lastLayerEnd).toHHMMSS());
+        chart2.setData(parseLayerData());
+        chart2.setupGrid();
+        chart2.draw();        
+    }
 }
 
 function layers(layer) {
@@ -459,19 +515,25 @@ function layers(layer) {
     var utime = d.getTime();
     if (layer === 1 && !printStartTime) {
         printStartTime = utime;
+        layerData.push(utime);
     }
     if (printStartTime) {
-        $('span#elapsed').text(tsToHMS(utime - printStartTime));
+        $('span#elapsed').text((utime - printStartTime).toHHMMSS());
     }
+    
 }
 
-function tsToHMS(timestamp) {
-    timestamp = timestamp / 1000;
-    var hours = Math.round(timestamp / 3600);
-    timestamp %= 3600;
-    var minutes = Math.round(timestamp / 60);
-    var seconds = Math.round(timestamp % 60);
-    return hours + "hr " + zeroPrefix(minutes) + "m " + zeroPrefix(seconds) + "s";
+Number.prototype.toHHMMSS = function () {
+    var sec_num = Math.floor(this / 1000); // don't forget the second param
+    var hours   = Math.floor(sec_num / 3600);
+    var minutes = Math.floor((sec_num - (hours * 3600)) / 60);
+    var seconds = sec_num - (hours * 3600) - (minutes * 60);
+
+    if (hours   < 10) {hours   = "0"+hours;}
+    if (minutes < 10) {minutes = "0"+minutes;}
+    if (seconds < 10) {seconds = "0"+seconds;}
+    var time    = hours+':'+minutes+':'+seconds;
+    return time;
 }
 
 function zeroPrefix(num) {
@@ -499,6 +561,19 @@ function setProgress(percent, layer, layers) {
             break;
     }
     $('div#progress').css("width", percent + "%");
+}
+
+function parseLayerData() {
+    if (layerData.length > maxLayerBars)
+        layerData.shift();
+    var res = [];
+    //res.push([0,0]);
+    var elapsed;
+    for (var i = 1; i < layerData.length; ++i) {
+        elapsed = Math.round((layerData[i] - layerData[i-1])/1000);
+        res.push([i, elapsed]);
+    }
+    return [res];
 }
 
 function parseChartData() {
