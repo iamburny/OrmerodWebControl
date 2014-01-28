@@ -1,6 +1,7 @@
 /*! Reprap Ormerod Control v0.10 | by Matt Burnett <matt@burny.co.uk>. | open license
  */
 var polling = false;
+var pollDelay = 1000;
 var printing = false;
 var paused = false;
 var ormerodIP;
@@ -9,39 +10,41 @@ var layerCount;
 var currentLayer;
 var objHeight;
 var printStartTime;
-var maxUploadBuffer = 90;
-var maxUploadCommands = 1;
-var dontRepeatLogMessage;
+var maxUploadBuffer = 80;
+var maxUploadCommands = 5;
+var messageSeqId = 0;
 
 //Temp and Layer Chart
 var chart;
 var chart2;
 var maxDataPoints = 200;
 var chartData = [[], []];
-var maxLayerBars = 50;
+var maxLayerBars = 100;
 var layerData = [];
 var bedColour = "#454BFF"; //blue
-var headColour = "#FC2D2D" //red
+var headColour = "#FC2D2D"; //red
+
+var gFile = [];
+var gFilename;
+var buffer;
+var timerStart;
 
 jQuery.extend({
     askElle: function(reqType, code) {
         var result = null;
-        $.ajax({
-            url: "http://" + ormerodIP + "/rr_" + reqType,
-            dataType: 'json',
-            data: {gcode: code},
-            async: false,
-            success: function(data) {
-                result = data;
-            }
-        });
-        return result;
+        if (reqType === 'gcode') {
+            code = code.replace(/\n/g, '%0A').replace('+', '%2B').replace('-', '%2D').replace(/\s/g, '+');
+            $.ajax('//' + ormerodIP + '/rr_gcode?gcode='+code, {async:false});
+        } else {
+            $.ajax('//' + ormerodIP + '/rr_'+reqType, {async:false, success:function(data){result = data;}});
+            return result;
+        }
     }
 });
 
 $(document).ready(function() {
     ormerodIP = location.host;
-    $('a#hostLocation').text(ormerodIP);
+    $('#hostLocation').text(ormerodIP);
 
     if ($.support.fileDrop) {
         fileDrop();
@@ -71,15 +74,16 @@ $(document).ready(function() {
 
     chart2 = $.plot("#layerChart", [{
             data: layerData,
-            bars: { show: true }
+            bars: {show: true}
         }], {
         series: {shadowSize: 0},
-        xaxis: {minTickSize: 1, tickDecimals:0},
-        yaxis: {minTickSize: 1, min:0, tickDecimals:0},
-        grid: { borderWidth: 0}
+        xaxis: {minTickSize: 1, tickDecimals: 0, panRange: [0, null], zoomRange: [20, 50]},
+        yaxis: {minTickSize: 1, min: 0, tickDecimals: 0, panRange: false},
+        grid: {borderWidth: 0},
+        pan: {interactive: true}
     });
 
-    
+
     message('success', 'Page Load Complete');
     $('button#connect, button#printing').removeClass('disabled');
 });
@@ -90,9 +94,10 @@ $('#connect').on('click', function() {
         updatePage();
     } else {
         polling = true;
-        updatePage();
         listGFiles();
         $.askElle("gcode", "M115");
+        updatePage();        
+        $.askElle("gcode", "M503");
         poll();
     }
 });
@@ -156,9 +161,7 @@ $('div#sendG button#txtinput, div#sendG a#gLink').on('click', function() {
 $('input#gInput').keydown(function(event) {
     if (event.which === 13) {
         event.preventDefault();
-        var result = $.askElle('gcode', $(this).val());
-        if (result.resp)
-            message('info', "<strong>result of " + code + "</strong><br>" + result.resp);
+        $.askElle('gcode', $(this).val());
     }
 });
 
@@ -174,7 +177,7 @@ $('table#moveHead button').on('click', function() {
         if (value.indexOf("Z") >= 0)
             feedRate = " F200";
 
-        var movePreCode = "M120\nG91\nG1";
+        var movePreCode = "M120\nG91\nG1 ";
         var movePostCode = "\nM121";
         $.askElle('gcode', movePreCode + value + feedRate + movePostCode);
     }
@@ -221,7 +224,7 @@ $("div#gFileList, div#gFileList2, div#gFileList3, div#gFileList4").on('click', '
     if (danger < 0) {
         var filename = $(this).text();
         $.askElle('gcode', "M23 " + filename + "\nM24");
-        message('success', filename + " sent to print" );
+        message('success', "G files [" + filename + "] sent to print");
         $('#tabs a:eq(1)').tab('show');
         resetLayerData();
     }
@@ -232,7 +235,7 @@ $("div#gFileList, div#gFileList2, div#gFileList3, div#gFileList4").on('click', '
 }).on('click', 'span#fileDelete', function() {
     var filename = $(this).parent().text();
     $.askElle('gcode', "M30 " + filename);
-    message('success', filename + " Deleted" );
+    message('success', "G files [" + filename + "] Deleted from the SD card");
     listGFiles();
 });
 $("button#filereload").on('click', function() {
@@ -244,83 +247,118 @@ function isNumber(n) {
 }
 
 function fileDrop() {
-    $('#dropTarget').fileDrop({
+    $('#uploadGfile').fileDrop({
         decodeBase64: true,
         removeDataUriScheme: true,
         onFileRead: function(fileCollection) {
             //Loop through each file that was dropped
             $.each(fileCollection, function(i) {
-                var ext = getFileExt(this.name);
-                var fname = getFileName(this.name);
-                if (ext !== "g" && ext !== "gco" && ext !== "gcode") {
-                    alert('Not a G Code file');
-                    return false;
-                } else {
-                    if (fname > 8) {
-                        fname = fname.substr(0, 8);
-                    }
-                    fileUpload(this.data, fname + '.g');
-                }
+                handleFileDrop(this.data, this.name, "upload");
+            });
+        },
+        overClass: 'btn-success'
+    });
+
+    $('#printGfile').fileDrop({
+        decodeBase64: true,
+        removeDataUriScheme: true,
+        onFileRead: function(fileCollection) {
+            //Loop through each file that was dropped
+            $.each(fileCollection, function(i) {
+                handleFileDrop(this.data, this.name, "print");
             });
         },
         overClass: 'btn-success'
     });
 }
 
-function fileUploadSingle(gcodes, filename) { //single line at a time
-    var d = new Date();
-    var utime = d.getTime();
-    var lines = gcodes.split(/\r\n|\r|\n/g);
-    var line, codeType;
-    var lineCount = lines.length;
-    $.askElle('gcode', "M28 " + filename);
-    for (var i = 0; i < lineCount; i++) {
-        line = lines[i].split(';');
-        codeType = line[0].substr(0, 1);
-        if (codeType === "G" || codeType === "M" || codeType === "T") {
-            //test += line+"\n";
-            $.askElle('gcode', line[0] + "\n");
+function handleFileDrop(data, fName, action) {
+    var ext = getFileExt(fName);
+    var fname = getFileName(fName);
+    if (ext !== "g" && ext !== "gco" && ext !== "gcode") {
+        alert('Not a G Code file');
+        return false;
+    } else {
+        if (fname > 8)
+            fname = fname.substr(0, 8);
+        gFile = data.split(/\r\n|\r|\n/g);
+        switch (action) {
+            case "upload":
+                gFilename = fname + '.g';
+                fileUpload();
+                break;
+            case "print":
+                gFilename = fName;
+                timer();
+                message("info", "Web Printing " + gFilename + " started");
+                webPrintLoop();
+
+                break;
         }
+
     }
-    $.askElle('gcode', "M29");
-    listGFiles();
-    d = new Date();
-    var utime2 = d.getTime();
-    $('span#elapsed').text("Uploaded " + filename + "\n in " + (utime2 - utime).toHHMMSS());
 }
 
-function fileUpload (gcodes, filename) { //multi line upload based on maxUploadBuffer
-    var d = new Date();
-    var utime = d.getTime();
-    var lines = gcodes.split(/\r\n|\r|\n/g);
+function webPrintLoop() {
+    var wait = 100;
+    if (buffer < 100) wait = 1000;
+    if (gFile.length > 0) {
+        setTimeout(function() {
+            if (buffer > 100) {
+                webPrintSend();
+            }
+            webPrintLoop();
+        }, wait);
+    }
+    if (gFile.length === 0) {
+        message("success", "Finished web printing " + gFilename + " in " + (timer() - timerStart).toHHMMSS());
+    }
+}
+
+function webPrintSend() { //Web Printing
+    var i=0;
+    var line = "";
+    var resp;
+    if (gFile.length > 0 && buffer > 0) {
+        while(i < maxUploadCommands && (line.length + gFile[0].length + 3) < maxUploadBuffer ) {
+            line += gFile[0] + "%0A";
+            gFile.shift();
+            i++;
+        }
+        $.askElle('gcode', line);        
+        resp = $.askElle('poll', '');
+        buffer = resp.buff;
+    }
+}
+
+function fileUpload() { //multi line upload 
+    timer();
     var line, codeType;
     var commandsToUpload = 0;
     var sendLine = "";
-    var lineCount = lines.length;
-    $.askElle('gcode', "M28 " + filename);
-    for (var i = 0; i < lineCount; i++) {
-        line = lines[i].split(';'); //remove comments only want Gcodes
+    $.askElle('gcode', "M28 " + gFilename);
+    while (gFile.length > 0) {
+        line = gFile[0].split(';'); //remove comments only want Gcodes
+        gFile.shift();
         codeType = line[0].substr(0, 1);
-        if (codeType === "G" || codeType === "M" || codeType === "T") {
-            if ((sendLine.length + line[0].length) > maxUploadBuffer || commandsToUpload >= maxUploadCommands) {
-                //character limit or command limit hit send it now
-                //alert("["+sendLine.length+"]" +sendLine);
-                $.askElle('gcode', sendLine);
+        if (codeType == "G" || codeType == "M" || codeType == "T") {
+            line[0] = line[0].replace(/(^\s+|\s+$|\t)/g, '');      //trim end spaces
+            if ((sendLine.length + line[0].length + 3) > maxUploadBuffer || commandsToUpload >= maxUploadCommands) {
+                $.askElle('gcode', sendLine);                 //character limit or command limit hit send it now
                 commandsToUpload = 1;
-                sendLine = line[0]; //start a new message
+                sendLine = line[0];                             //start a new message
             } else {
-                //more space so append
-                if (sendLine !== "") sendLine += "\n";
+                if (sendLine !== ""){ sendLine += "%0A"; }         //more space so append
                 sendLine += line[0];
-                commandsToUpload += 1;                
+                commandsToUpload += 1;
             }
         }
     }
+    if (sendLine != "") $.askElle('gcode', sendLine); // check all is done, send if not
     $.askElle('gcode', "M29");
     listGFiles();
-    d = new Date();
-    var utime2 = d.getTime();
-    message("info", "uploaded "+ filename + "<br> in " + (utime2 - utime).toHHMMSS());
+    $('#tabs a:eq(2)').tab('show'); //show gfile tab
+    message("info", "uploaded " + gFilename + "<br> in " + timer().toHHMMSS());
 }
 
 function listGFiles() {
@@ -332,10 +370,10 @@ function listGFiles() {
     result.files.forEach(function(item) {
         count++;
         switch (true) {
-            case (count > (filesPerCol*3)):
+            case (count > (filesPerCol * 3)):
                 list = "gFileList4";
                 break;
-            case (count > (filesPerCol*2)):
+            case (count > (filesPerCol * 2)):
                 list = "gFileList3";
                 break;
             case (count > filesPerCol):
@@ -385,26 +423,38 @@ function enableButtons(which) {
 
 function message(type, text) {
     var d = new Date();
-    var time = zeroPrefix(d.getHours()) +":"+ zeroPrefix(d.getMinutes()) + ":" + zeroPrefix(d.getSeconds());
-    $('div#messages').prepend(time+" <span class='alert-" + type +"'>"+text+"</span><br />");
+    var time = zeroPrefix(d.getHours()) + ":" + zeroPrefix(d.getMinutes()) + ":" + zeroPrefix(d.getSeconds());
+    $('div#messages').prepend(time + " <span class='alert-" + type + "'>" + text + "</span><br />");
 }
 
-function parseResponse(response) {
-    if (dontRepeatLogMessage !== response) {
-        dontRepeatLogMessage = response;
-        switch (true) {
-            case response.indexOf('Firmware') > 0:
-                if ($('p#firmVer').text() === "") {
-                    var res = response.replace(/ /g, "<br />");
-                    message('info', '<strong>M115</strong>\n' + res);
-                    $('p#firmVer').text(response);
-                }
-                break;
-            default:
-                message('info', response);
-                break;
-        }
+function parseM503(response) {
+    $('div#config').text('');
+    var config = response.split(/\n/g);
+    config.forEach(function(item) {
+        $('div#config').append("<span class='alert-info col-md-9'>" + item + "</span><br />");
+    });
+}
+
+function parseResponse(res) {
+    switch (true) {
+        case res.indexOf('Debugging enabled') >= 0:
+            message('info', '<strong>M111</strong><br />' + res.replace(/\n/g, "<br />"));    
+            break;
+        case res.indexOf('Firmware') >= 0:
+            if ($('p#firmVer').text() === "") {
+                $('p#firmVer').text(res);
+            }
+            message('info', '<strong>M115</strong><br />' + res.replace(/\n/g, "<br />"));
+            break;
+        case res.indexOf('M550') >= 0:
+            message('info', '<strong>M503</strong><br />' + res.replace(/\n/g, "<br />")); 
+            parseM503(res);
+            break;
+        default:
+            message('info', res);
+            break;
     }
+
 }
 
 function updatePage() {
@@ -425,9 +475,11 @@ function updatePage() {
     } else {
         $('button#connect').removeClass('btn-danger').addClass('btn-success').text("Connected");
         //Connected Hoorahhh!
-        if (status.resp) {
+        if (messageSeqId < status.seq) {
+            messageSeqId = status.seq;
             parseResponse(status.resp);
         }
+        buffer = status.buff;
 
         if (status.poll[0] === "I" && !paused) {
             //inactive, not printing
@@ -493,8 +545,8 @@ function resetLayerData() {
     //clear layercount
     layerData = [];
     printStartTime = null;
-    $('span#elapsed, span#lastlayer').text("");
-    
+    $('span#elapsed, span#lastlayer').text("00:00:00");
+
 }
 
 function layerChange() {
@@ -506,7 +558,7 @@ function layerChange() {
         $('span#lastlayer').text((utime - lastLayerEnd).toHHMMSS());
         chart2.setData(parseLayerData());
         chart2.setupGrid();
-        chart2.draw();        
+        chart2.draw();
     }
 }
 
@@ -520,20 +572,6 @@ function layers(layer) {
     if (printStartTime) {
         $('span#elapsed').text((utime - printStartTime).toHHMMSS());
     }
-    
-}
-
-Number.prototype.toHHMMSS = function () {
-    var sec_num = Math.floor(this / 1000); // don't forget the second param
-    var hours   = Math.floor(sec_num / 3600);
-    var minutes = Math.floor((sec_num - (hours * 3600)) / 60);
-    var seconds = sec_num - (hours * 3600) - (minutes * 60);
-
-    if (hours   < 10) {hours   = "0"+hours;}
-    if (minutes < 10) {minutes = "0"+minutes;}
-    if (seconds < 10) {seconds = "0"+seconds;}
-    var time    = hours+':'+minutes+':'+seconds;
-    return time;
 }
 
 function zeroPrefix(num) {
@@ -570,7 +608,7 @@ function parseLayerData() {
     //res.push([0,0]);
     var elapsed;
     for (var i = 1; i < layerData.length; ++i) {
-        elapsed = Math.round((layerData[i] - layerData[i-1])/1000);
+        elapsed = Math.round((layerData[i] - layerData[i - 1]) / 1000);
         res.push([i, elapsed]);
     }
     return [res];
@@ -589,12 +627,41 @@ function parseChartData() {
     return res;
 }
 
+function timer() {
+    var d = new Date();
+    if (!timerStart) {
+        timerStart = d.getTime();
+    } else {
+        var elapsed = d.getTime() - timerStart;
+        timerStart = null;
+        return elapsed;
+    }
+}
+
 function poll() {
     if (polling) {
         setTimeout(function() {
             updatePage();
             poll();
-        }, 2000);
+        }, pollDelay);
     }
 }
 
+Number.prototype.toHHMMSS = function() {
+    var sec_num = Math.floor(this / 1000); // don't forget the second param
+    var hours = Math.floor(sec_num / 3600);
+    var minutes = Math.floor((sec_num - (hours * 3600)) / 60);
+    var seconds = sec_num - (hours * 3600) - (minutes * 60);
+
+    if (hours < 10) {
+        hours = "0" + hours;
+    }
+    if (minutes < 10) {
+        minutes = "0" + minutes;
+    }
+    if (seconds < 10) {
+        seconds = "0" + seconds;
+    }
+    var time = hours + ':' + minutes + ':' + seconds;
+    return time;
+}
