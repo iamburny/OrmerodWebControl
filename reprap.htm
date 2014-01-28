@@ -1,7 +1,7 @@
 <!DOCTYPE HTML> 
 <html>
     <head>
-        <title>RepRapPro v0.29</title>
+        <title>RepRapPro v0.50</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
         <!-- Bootstrap -->
@@ -27,21 +27,25 @@
                         <span class="icon-bar"></span>
                         <span class="icon-bar"></span>
                     </button>
-                    <a class="navbar-brand" href="#"><strong>RepRapPro Ormerod</strong></a>
+                    <a class="navbar-brand" href="#"><strong>RepRapPro Ormerod</strong> <small>- <span id="hostLocation"></span></small></a>
                 </div>
 
                 <!-- Collect the nav links, forms, and other content for toggling -->
                 <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-                    <div class="col-md-2">
-                        <a class="navbar-brand" href="#" id="hostLocation"></a>
+                    <div class="col-md-1">
+                        <form class="navbar-form navbar-left">
+                            <button type="button" id="uploadGfile" class="btn btn-default" title="Drop a G file here to
+                                    Upload it to the Duets SD card">upload G</button>
+                        </form>
                     </div>
                     <div class="col-md-1">
                         <form class="navbar-form navbar-left">
-                            <button type="button" id="dropTarget" class="btn btn-default">G file drop</button>
+                            <button type="button" id="printGfile" class="btn btn-default" title="Drop a G file here to Print it
+                                    direct from the Web Interface">print G</button>
                         </form>
-                    </div>
+                    </div>                    
 
-                    <div class="col-md-6">
+                    <div class="col-md-5">
                         <form class="navbar-form navbar-left">
                             <div class="input-group">
                                 <div class="input-group-btn" id='sendG'>
@@ -79,11 +83,11 @@
                     <div class="col-md-2">
                         <button type="button" id="connect" class="btn btn-danger btn-block disabled" value="0">Connect</button>   
                         <div id="panicBtn" style="margin-top: 5px">
-                        <button type="button" value='M112' id='stop' class="btn btn-danger btn-block disabled" title="M112, moves in progress are immediately terminated,
-shuts down, motors/heaters turned off.
-Requires reset button on duet to restart">STOP!</button>
-                        <button type="button" value='M25' id='pause' class="btn btn-info btn-block disabled" title='Pause printing, Resumeable'>Pause</button>
-                        <button type="button" value='reset' id='reset' class="btn btn-success btn-block hidden" title='Pause before reset'>Reset</button>      
+                            <button type="button" value='M112' id='stop' class="btn btn-danger btn-block disabled" title="M112, moves in progress are immediately terminated,
+                                    shuts down, motors/heaters turned off.
+                                    Requires reset button on duet to restart">STOP!</button>
+                            <button type="button" value='M25' id='pause' class="btn btn-info btn-block disabled" title='Pause printing, Resumeable'>Pause</button>
+                            <button type="button" value='reset' id='reset' class="btn btn-success btn-block hidden" title='Pause before reset'>Reset</button>      
                         </div>
                     </div>                    
                     <div class="col-md-6">
@@ -362,15 +366,15 @@ Requires reset button on duet to restart">STOP!</button>
                                 </div> 
                             </div>
                         </div>     
-                        
-                        <div class="tab-pane" id="messages" style="overflow-y: scroll; height: 280px">
+
+                        <div class="tab-pane" id="messages" style="overflow-y: scroll; height: 320px">
                             <br />
-                            
+
                         </div>
-                        
-                        <div class="tab-pane" id="settings">
+
+                        <div class="tab-pane" id="settings" style="overflow-y: scroll; height: 320px">
                             <br />
-                            <form class="form-horizontal" role="form">
+                            <form class="form-horizontal col-md-9" role="form">
                                 <div class="form-group">
                                     <label class="col-sm-2 control-label">Duet Firmware v</label>
                                     <div class="col-sm-10">
@@ -390,32 +394,52 @@ Requires reset button on duet to restart">STOP!</button>
                                     </div>
                                 </div>                                
                             </form>
+                            <div class="panel panel-default col-md-9">
+                                <div class="panel-body">
+                                    <strong>Config File</strong>
+                                </div>
+                            </div>                            
+                            <div class="col-md-8 btn-group-vertical" id="config">
+                            </div>                            
                         </div>
-                    </div>
-                </div>
-
-                <div class="row"> 
-
-                    <div class="col-md-4 alert alert-dismissable" id="messageBox">
-
                     </div>
                 </div>
             </div>
         </div>  
 
-    <div id="footer">
-      <div class="container text-middle">
-          <p class="text-muted"><small><a href="//forums.reprap.org/read.php?340,290811" target="_blank">get help here</a><span class="pull-right">Web Interface by iamburny :) </span></small>
-          </p>
-      </div>
-    </div>     
-        
+        <div id="footer">
+            <div class="container text-middle">
+                <p class="text-muted"><small><a href="//forums.reprap.org/read.php?340,290811" target="_blank">get help here</a><span class="pull-right">Web Interface by iamburny :) </span></small>
+                </p>
+            </div>
+        </div>     
+
+        <div class="modal fade" id="modal">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                        <h4 class="modal-title">Modal title</h4>
+                    </div>
+                    <div class="modal-body">
+                        <p>One fine body&hellip;</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary">Save changes</button>
+                    </div>
+                </div><!-- /.modal-content -->
+            </div><!-- /.modal-dialog -->
+        </div><!-- /.modal -->
+
+
         <!-- Bootstrap core JavaScript
         ================================================== -->
         <!-- Placed at the end of the document so the pages load faster -->
         <script src="//192.168.1.2/reprap/js/jquery-1.10.2.min.js"></script>
         <script src="//192.168.1.2/reprap/js/bootstrap.min.js"></script>
         <script src="//192.168.1.2/reprap/js/jquery.flot.min.js"></script>
+        <script src="//192.168.1.2/reprap/js/jquery.flot.navigate.js"></script>
         <script src="//192.168.1.2/reprap/js/jquery.filedrop.min.js"></script>        
         <script src="//192.168.1.2/reprap/js/reprap.js"></script> 
     </body>
