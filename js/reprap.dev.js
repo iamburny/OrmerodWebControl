@@ -10,8 +10,8 @@ var layerCount;
 var currentLayer;
 var objHeight;
 var printStartTime;
-var maxUploadBuffer = 80;
-var maxUploadCommands = 5;
+var maxUploadBuffer = 900;
+var maxUploadCommands = 100;
 var messageSeqId = 0;
 
 //Temp and Layer Chart
