@@ -1,7 +1,7 @@
 <!DOCTYPE HTML> 
 <html>
     <head>
-        <title>RepRapPro v0.50</title>
+        <title>RepRapPro v0.52</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
         <!-- Bootstrap -->
@@ -34,14 +34,14 @@
                 <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
                     <div class="col-md-1">
                         <form class="navbar-form navbar-left">
-                            <button type="button" id="uploadGfile" class="btn btn-default" title="Drop a G file here to
-                                    Upload it to the Duets SD card">upload G</button>
+                            <button type="button" id="uploadGfile" class="btn btn-default disabled" title="Drop a G file here to
+Upload it to the Duets SD card">upload G</button>
                         </form>
                     </div>
                     <div class="col-md-1">
                         <form class="navbar-form navbar-left">
-                            <button type="button" id="printGfile" class="btn btn-default" title="Drop a G file here to Print it
-                                    direct from the Web Interface">print G</button>
+                            <button type="button" id="printGfile" class="btn btn-default disabled" title="Drop a G file here to Print it
+direct from the Web Interface">print G</button>
                         </form>
                     </div>                    
 
@@ -84,8 +84,8 @@
                         <button type="button" id="connect" class="btn btn-danger btn-block disabled" value="0">Connect</button>   
                         <div id="panicBtn" style="margin-top: 5px">
                             <button type="button" value='M112' id='stop' class="btn btn-danger btn-block disabled" title="M112, moves in progress are immediately terminated,
-                                    shuts down, motors/heaters turned off.
-                                    Requires reset button on duet to restart">STOP!</button>
+shuts down, motors/heaters turned off.
+Requires reset button on duet to restart">STOP!</button>
                             <button type="button" value='M25' id='pause' class="btn btn-info btn-block disabled" title='Pause printing, Resumeable'>Pause</button>
                             <button type="button" value='reset' id='reset' class="btn btn-success btn-block hidden" title='Pause before reset'>Reset</button>      
                         </div>
@@ -167,7 +167,8 @@
                                     <td class="text-center"><small><span id="probe">0</span></small></td>
                                 </tr>
                             </tbody>
-                        </table>         
+                        </table>
+                        <span class="label label-warning" id="warning"></span>
                     </div>
 
                 </div>
@@ -196,7 +197,7 @@
                                     </th>
                                     </tr>                                
                                     <tr>
-                                        <td><button type="button" value="G28 X0" class="btn btn-primary center-block disabled">Home X</button></td>
+                                        <td><button type="button" value="G28 X0" id="homeX" class="btn btn-primary center-block disabled">Home X</button></td>
                                         <td>
                                             <div class="btn-group pull-right">
                                                 <button type="button" class="btn btn-default disabled"><span class="glyphicon glyphicon-chevron-left"></span>X-100</button>
@@ -215,7 +216,7 @@
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td><button type="button" value="G28 Y0" class="btn btn-primary center-block disabled">Home Y</button></td>
+                                        <td><button type="button" value="G28 Y0" id="homeY" class="btn btn-primary center-block disabled">Home Y</button></td>
                                         <td class="">
                                             <div class="btn-group pull-right">
                                                 <button type="button" class="btn btn-default disabled"><span class="glyphicon glyphicon-chevron-left"></span>Y-100</button>
@@ -234,7 +235,7 @@
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td><button type="button" value="G28 Z0" class="btn btn-primary center-block disabled">Home Z</button></td>
+                                        <td><button type="button" value="G28 Z0" id="homeZ" class="btn btn-primary center-block disabled">Home Z</button></td>
                                         <td>
                                             <div class="btn-group pull-right">
                                                 <button type="button" class="btn btn-default disabled"><span class="glyphicon glyphicon-chevron-left"></span>Z-100</button>
@@ -255,7 +256,7 @@
                                     </tbody>
                                 </table>
                             </div>
-                            <div class="col-md-4" style="overflow: hidden; height: 250px">
+                            <div class="col-md-4">
                                 <!-- Extruder control -->
                                 <table class="table table-bordered" id="extruder">
                                     <tbody>
@@ -305,6 +306,15 @@
                                         </tr>
                                     </tbody>
                                 </table>
+                            </div>
+                            <div class="col-md-12" id="quicks">
+                                <table class="table table-bordered"><tr><td>
+                                <p><strong>Quick Commands</strong></p>
+                                <a href="#" role="button" class="btn btn-default disabled" title="Set Absolute Z zero">G92 Z0</a>
+                                <a href="#" role="button" class="btn btn-default disabled" title="Move X & Y axes to zero">G1 X0 Y0</a>
+                                <a href="#" role="button" class="btn btn-default disabled" title="Move Z axis to zero">G1 Z0</a>
+                                <a href="#" role="button" class="btn btn-default disabled" title="Move X & Y to Bed Centre">G1 X100 Y100</a>
+                                </td></tr></table>
                             </div>
                         </div>
 
@@ -376,7 +386,7 @@
                             <br />
                             <form class="form-horizontal col-md-9" role="form">
                                 <div class="form-group">
-                                    <label class="col-sm-2 control-label">Duet Firmware v</label>
+                                    <label class="col-sm-2 control-label">Duet Firmware</label>
                                     <div class="col-sm-10">
                                         <p class="form-control-static" id="firmVer"></p>
                                     </div>
@@ -388,7 +398,7 @@
                                     </div>
                                 </div>
                                 <div class="form-group">
-                                    <label for="pollDelay" class="col-sm-2 control-label">Poll Delay ms</label>
+                                    <label for="pollDelay" class="col-sm-2 control-label">UI refresh ms</label>
                                     <div class="col-sm-2">
                                         <input type="text" class="form-control" id="layerHeight" title="Setting this to small can cause the Duet to crash (default:2000)" value="2000" />
                                     </div>
@@ -396,7 +406,7 @@
                             </form>
                             <div class="panel panel-default col-md-9">
                                 <div class="panel-body">
-                                    <strong>Config File</strong>
+                                    <strong>Config.g file</strong>
                                 </div>
                             </div>                            
                             <div class="col-md-8 btn-group-vertical" id="config">
@@ -418,20 +428,19 @@
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                        <h4 class="modal-title">Modal title</h4>
+                        <button type="button" class="close hidden" id="modalClose" data-dismiss="modal" aria-hidden="true">&times;</button>
+                        <h4 class="modal-title"></h4>
                     </div>
                     <div class="modal-body">
-                        <p>One fine body&hellip;</p>
+                        
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                        <button type="button" class="btn btn-primary">Save changes</button>
+                        <button type="button" id="modalClose" class="btn btn-default hidden" data-dismiss="modal">Close</button>
+                        <button type="button" id="modalSave" class="btn btn-primary hidden">Save changes</button>
                     </div>
                 </div><!-- /.modal-content -->
             </div><!-- /.modal-dialog -->
         </div><!-- /.modal -->
-
 
         <!-- Bootstrap core JavaScript
         ================================================== -->

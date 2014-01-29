@@ -10,7 +10,7 @@ var layerCount;
 var currentLayer;
 var objHeight;
 var printStartTime;
-var maxUploadBuffer = 900;
+var maxUploadBuffer = 800;
 var maxUploadCommands = 100;
 var messageSeqId = 0;
 
@@ -23,22 +23,19 @@ var maxLayerBars = 100;
 var layerData = [];
 var bedColour = "#454BFF"; //blue
 var headColour = "#FC2D2D"; //red
-
 var gFile = [];
-var gFilename;
-var buffer;
-var timerStart;
+var gFileLength, gFilename, buffer, timerStart, webPrinting;
 
 jQuery.extend({
     askElle: function(reqType, code) {
-        var result = null;
-        if (reqType === 'gcode') {
+        var result;
+        var query = "";
+        if (reqType === 'gcode' && code != "") {
             code = code.replace(/\n/g, '%0A').replace('+', '%2B').replace('-', '%2D').replace(/\s/g, '+');
-            $.ajax('//' + ormerodIP + '/rr_gcode?gcode='+code, {async:false});
-        } else {
-            $.ajax('//' + ormerodIP + '/rr_'+reqType, {async:false, success:function(data){result = data;}});
-            return result;
+            query = "?gcode="+code;
         }
+        $.ajax('//' + ormerodIP + '/rr_'+reqType+query, {async:false, success:function(data){result = data;}});
+        return result;
     }
 });
 
@@ -149,7 +146,7 @@ $('div#feed button#feed').on('click', function() {
 });
 
 //gcodes
-$('div#sendG button#txtinput, div#sendG a#gLink').on('click', function() {
+$('div#sendG button#txtinput, div#sendG a#gLink, div#quicks a').on('click', function() {
     var code;
     if (this.nodeName === 'BUTTON') {
         code = $('input#gInput').val();
@@ -282,83 +279,76 @@ function handleFileDrop(data, fName, action) {
         if (fname > 8)
             fname = fname.substr(0, 8);
         gFile = data.split(/\r\n|\r|\n/g);
+        gFileLength = gFile.length;
+        timer();
         switch (action) {
             case "upload":
                 gFilename = fname + '.g';
-                fileUpload();
+                $.askElle('gcode', "M28 " + gFilename);
+                message("info", "File Upload of " + gFilename + " started");
+                modalMessage(gFilename + " upload progress", "Upload Started", false);
+                $('div#modal').modal({keyboard:false, show:true});
+                uploadLoop(action);
                 break;
             case "print":
                 gFilename = fName;
-                timer();
                 message("info", "Web Printing " + gFilename + " started");
-                webPrintLoop();
-
+                webPrinting = true;
+                uploadLoop(action);
                 break;
         }
-
     }
 }
 
-function webPrintLoop() {
-    var wait = 100;
-    if (buffer < 100) wait = 1000;
-    if (gFile.length > 0) {
+function uploadLoop(action) { //Web Printing/Uploading
+    var wait = 20;
+    var resp;
+    if (gFile.length === 0) {
+        var duration = (timer() - timerStart).toHHMMSS();
+        //finished file content 
+        switch (action) {
+            case "print":
+                webPrinting = false;
+                message("success", "Finished web printing " + gFilename + " in " + duration);                
+                break;
+            case "upload":
+                $.askElle('gcode', "M29");
+                listGFiles();
+                modalMessage(gFilename + " upload Complete", "100% Complete in "+ duration, true);
+                $('#tabs a:eq(2)').tab('show'); //show gfile tab
+                message("info", "Uploaded File " + gFilename + "<br> in " + duration);                
+                break;
+        }
+    } else {
+        if (buffer < 100) {
+            resp = $.askElle('poll', '');
+            buffer = resp.buff;
+        }
+        if (buffer < 100) {
+            wait = 100;
+        } else {
+            webSend();
+        }
         setTimeout(function() {
-            if (buffer > 100) {
-                webPrintSend();
-            }
-            webPrintLoop();
+            uploadLoop(action);
         }, wait);
     }
-    if (gFile.length === 0) {
-        message("success", "Finished web printing " + gFilename + " in " + (timer() - timerStart).toHHMMSS());
-    }
 }
 
-function webPrintSend() { //Web Printing
+function webSend() { //Web Printing/Uploading
     var i=0;
     var line = "";
     var resp;
     if (gFile.length > 0 && buffer > 0) {
-        while(i < maxUploadCommands && (line.length + gFile[0].length + 3) < maxUploadBuffer ) {
+        while(gFile.length > 0 && i < maxUploadCommands && (line.length + gFile[0].length + 3) < buffer ) {
             line += gFile[0] + "%0A";
             gFile.shift();
             i++;
         }
-        $.askElle('gcode', line);        
-        resp = $.askElle('poll', '');
-        buffer = resp.buff;
+        resp = $.askElle('gcode', line); //send chunk of gcodes, and get buffer response
+        resp.buff?buffer = resp.buff:buffer = 0;
+        modalMessage(gFilename + " upload progress", Math.floor((1 - (gFile.length / gFileLength)) * 100).toString()+"% Complete", false);
     }
-}
-
-function fileUpload() { //multi line upload 
-    timer();
-    var line, codeType;
-    var commandsToUpload = 0;
-    var sendLine = "";
-    $.askElle('gcode', "M28 " + gFilename);
-    while (gFile.length > 0) {
-        line = gFile[0].split(';'); //remove comments only want Gcodes
-        gFile.shift();
-        codeType = line[0].substr(0, 1);
-        if (codeType == "G" || codeType == "M" || codeType == "T") {
-            line[0] = line[0].replace(/(^\s+|\s+$|\t)/g, '');      //trim end spaces
-            if ((sendLine.length + line[0].length + 3) > maxUploadBuffer || commandsToUpload >= maxUploadCommands) {
-                $.askElle('gcode', sendLine);                 //character limit or command limit hit send it now
-                commandsToUpload = 1;
-                sendLine = line[0];                             //start a new message
-            } else {
-                if (sendLine !== ""){ sendLine += "%0A"; }         //more space so append
-                sendLine += line[0];
-                commandsToUpload += 1;
-            }
-        }
-    }
-    if (sendLine != "") $.askElle('gcode', sendLine); // check all is done, send if not
-    $.askElle('gcode', "M29");
-    listGFiles();
-    $('#tabs a:eq(2)').tab('show'); //show gfile tab
-    message("info", "uploaded " + gFilename + "<br> in " + timer().toHHMMSS());
 }
 
 function listGFiles() {
@@ -395,7 +385,7 @@ function getFileName(filename) {
 function disableButtons(which) {
     switch (which) {
         case "head":
-            $('table#moveHead button, table#temp button, table#extruder button, table#extruder label').addClass('disabled');
+            $('table#moveHead button, table#temp button, table#extruder button, table#extruder label, div#quicks a, button#uploadGfile, button#printGfile').addClass('disabled');
             break;
         case "panic":
             $('div#panicBtn button').addClass('disabled');
@@ -410,7 +400,7 @@ function disableButtons(which) {
 function enableButtons(which) {
     switch (which) {
         case "head":
-            $('table#moveHead button, table#temp button, table#extruder button, table#extruder label').removeClass('disabled');
+            $('table#moveHead button, table#temp button, table#extruder button, table#extruder label, div#quicks a, button#uploadGfile, button#printGfile').removeClass('disabled');
             break;
         case "panic":
             $('div#panicBtn button').removeClass('disabled');
@@ -419,6 +409,12 @@ function enableButtons(which) {
             $('div#gFileList button, div#gFileList2 button, div#gFileList3 button').removeClass('disabled');
             break;
     }
+}
+
+function modalMessage(title, text, close) {
+    $('div#modal h4.modal-title').text(title);
+    $('div#modal div.modal-body').text(text);
+    close?$('div#modal button#modalClose').removeClass('hidden'):$('div#modal button#modalClose').addClass('hidden');
 }
 
 function message(type, text) {
@@ -457,6 +453,17 @@ function parseResponse(res) {
 
 }
 
+function homedWarning(x,y,z) {
+    if ((x+y+z) < 3) {
+        $('span#warning').text('*some axes are not homed');
+    } else {    
+        $('span#warning').text('');
+    }
+    x===0?$('button#homeX').removeClass('btn-primary').addClass('btn-warning'):$('button#homeX').removeClass('btn-warning').addClass('btn-primary');
+    y===0?$('button#homeY').removeClass('btn-primary').addClass('btn-warning'):$('button#homeY').removeClass('btn-warning').addClass('btn-primary');
+    z===0?$('button#homeZ').removeClass('btn-primary').addClass('btn-warning'):$('button#homeZ').removeClass('btn-warning').addClass('btn-primary');
+}
+
 function updatePage() {
     var status = $.askElle("poll", "");
     if (!status || !polling) {
@@ -475,26 +482,15 @@ function updatePage() {
     } else {
         $('button#connect').removeClass('btn-danger').addClass('btn-success').text("Connected");
         //Connected Hoorahhh!
-        if (messageSeqId < status.seq) {
+        if (messageSeqId !== status.seq) {
             messageSeqId = status.seq;
             parseResponse(status.resp);
         }
         buffer = status.buff;
 
-        if (status.poll[0] === "I" && !paused) {
-            //inactive, not printing
-            printing = false;
-            $('button#printing').removeClass('btn-danger').removeClass('btn-success').addClass('btn-warning').text("Ready :)");
-            disableButtons("panic");
-            enableButtons('head');
-            enableButtons("gfilelist");
-        } else if (status.poll[0] === "I" && paused) {
-            //paused
-            printing = true;
-            $('button#printing').removeClass('btn-danger').removeClass('btn-success').addClass('btn-warning').text("Paused");
-            enableButtons('panic');
-            enableButtons('head');
-        } else if (status.poll[0] === "P") {
+        homedWarning(status.hx,status.hy,status.hz);
+
+        if (status.poll[0] === "P" || webPrinting) {
             //printing
             printing = true;
             objHeight = $('input#objheight').val();
@@ -510,6 +506,19 @@ function updatePage() {
                 setProgress(0, 0, 0);
             }
             layers(currentLayer);
+        } else if (status.poll[0] === "I" && !paused ) {
+            //inactive, not printing
+            printing = false;
+            $('button#printing').removeClass('btn-danger').removeClass('btn-success').addClass('btn-warning').text("Ready :)");
+            disableButtons("panic");
+            enableButtons('head');
+            enableButtons("gfilelist");
+        } else if (status.poll[0] === "I" && paused) {
+            //paused
+            printing = true;
+            $('button#printing').removeClass('btn-danger').removeClass('btn-success').addClass('btn-warning').text("Paused");
+            enableButtons('panic');
+            enableButtons('head');
         } else {
             //unknown state
             printing = paused = false;
