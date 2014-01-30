@@ -1,22 +1,16 @@
-/*! Reprap Ormerod Control v0.10 | by Matt Burnett <matt@burny.co.uk>. | open license
+/*! Reprap Ormerod Control v0.53 | by Matt Burnett <matt@burny.co.uk>. | open license
  */
 var polling = false;
-var pollDelay = 1000;
 var printing = false;
 var paused = false;
-var ormerodIP;
-var layerHeight = 0.24;
-var layerCount;
-var currentLayer;
-var objHeight;
-var printStartTime;
-var maxUploadBuffer = 800;
-var maxUploadCommands = 100;
+var pollDelay = 1000;
+var layerHeight,ormerodIP,layerCount,currentLayer,objHeight,printStartTime;
+var maxUploadBuffer = 1024;
+var maxUploadCommands = 200;
 var messageSeqId = 0;
 
 //Temp and Layer Chart
-var chart;
-var chart2;
+var chart,chart2;
 var maxDataPoints = 200;
 var chartData = [[], []];
 var maxLayerBars = 100;
@@ -25,6 +19,10 @@ var bedColour = "#454BFF"; //blue
 var headColour = "#FC2D2D"; //red
 var gFile = [];
 var gFileLength, gFilename, buffer, timerStart, webPrinting;
+var halfz = 0;
+var macroGs = ['setbed.g'];
+var chevLeft = "<span class='glyphicon glyphicon-chevron-left'></span>";
+var chevRight = "<span class='glyphicon glyphicon-chevron-right'></span>";
 
 jQuery.extend({
     askElle: function(reqType, code) {
@@ -34,12 +32,40 @@ jQuery.extend({
             code = code.replace(/\n/g, '%0A').replace('+', '%2B').replace('-', '%2D').replace(/\s/g, '+');
             query = "?gcode="+code;
         }
-        $.ajax('//' + ormerodIP + '/rr_'+reqType+query, {async:false, success:function(data){result = data;}});
+        $.ajax('//' + ormerodIP + '/rr_'+reqType+query, {async:false,dataType:"json",success:function(data){result = data;}});
         return result;
     }
 });
 
+function loadSettings() {
+    var zwas = halfz;
+    pollDelay = $('div#settings input#pollDelay').val();
+    !pollDelay?pollDelay=1000:false;
+    layerHeight = $('div#settings input#layerHeight').val();
+    $('div#settings input#halfz').is(':checked')?halfz=1:halfz=0;  
+    if (zwas !== halfz) {
+        $('div#Zminus, div#Zplus').text('');
+        moveVals(['Z']);
+    } 
+}
+
+function moveVals(axis) {
+    axis.forEach(function(value) {
+        halfz&&value=='Z'?i=50:i=100;
+        var button = 0;
+        for (i; i >= 0.05; i=i/10) {
+            $('div#'+value+'minus').append('<button type="button" class="btn btn-default disabled">'+chevLeft+value+'-'+i.toString()+'</button>');
+            $('div#'+value+'plus').prepend('<button type="button" class="btn btn-default disabled">'+value+'+'+i.toString()+chevRight+'</button>');
+            button++;
+        }
+    });
+
+}
+
 $(document).ready(function() {
+    loadSettings();
+    moveVals(['X','Y','Z']);
+    
     ormerodIP = location.host;
     $('#hostLocation').text(ormerodIP);
 
@@ -80,7 +106,6 @@ $(document).ready(function() {
         pan: {interactive: true}
     });
 
-
     message('success', 'Page Load Complete');
     $('button#connect, button#printing').removeClass('disabled');
 });
@@ -91,10 +116,10 @@ $('#connect').on('click', function() {
         updatePage();
     } else {
         polling = true;
-        listGFiles();
-        $.askElle("gcode", "M115");
         updatePage();        
-        $.askElle("gcode", "M503");
+        listGFiles();
+        $.askElle("gcode", "M115"); //get firmware
+        $.askElle("gcode", "M503"); //get config.g
         poll();
     }
 });
@@ -146,10 +171,12 @@ $('div#feed button#feed').on('click', function() {
 });
 
 //gcodes
-$('div#sendG button#txtinput, div#sendG a#gLink, div#quicks a').on('click', function() {
+$('div#sendG, div#sendG, div#quicks').on('click', 'button#txtinput, a', function() {
     var code;
     if (this.nodeName === 'BUTTON') {
         code = $('input#gInput').val();
+    } else if (this.attributes.itemprop) {
+        code = this.attributes.itemprop.value;
     } else {
         code = $(this).text();
     }
@@ -163,7 +190,7 @@ $('input#gInput').keydown(function(event) {
 });
 
 //move controls
-$('table#moveHead button').on('click', function() {
+$('table#moveHead').on('click', 'button', function() {
     var btnVal = $(this).attr('value');
     if (btnVal) {
         $.askElle('gcode', btnVal);
@@ -239,6 +266,9 @@ $("button#filereload").on('click', function() {
     listGFiles();
 });
 
+$("div#settings button#saveSettings").on('click', function(){
+    loadSettings();
+});
 function isNumber(n) {
     return !isNaN(parseFloat(n)) && isFinite(n);
 }
@@ -276,8 +306,7 @@ function handleFileDrop(data, fName, action) {
         alert('Not a G Code file');
         return false;
     } else {
-        if (fname > 8)
-            fname = fname.substr(0, 8);
+        if (fname.length > 8) { fname = fname.substr(0, 8); }
         gFile = data.split(/\r\n|\r|\n/g);
         gFileLength = gFile.length;
         timer();
@@ -301,11 +330,11 @@ function handleFileDrop(data, fName, action) {
 }
 
 function uploadLoop(action) { //Web Printing/Uploading
-    var wait = 20;
+    var wait = 5;
     var resp;
     if (gFile.length === 0) {
+        //finished file content, stop loop, end tasks
         var duration = (timer() - timerStart).toHHMMSS();
-        //finished file content 
         switch (action) {
             case "print":
                 webPrinting = false;
@@ -320,12 +349,12 @@ function uploadLoop(action) { //Web Printing/Uploading
                 break;
         }
     } else {
-        if (buffer < 100) {
+        if (buffer == null || buffer < 100) {
             resp = $.askElle('poll', '');
             buffer = resp.buff;
         }
         if (buffer < 100) {
-            wait = 100;
+            wait = 20;
         } else {
             webSend();
         }
@@ -339,14 +368,20 @@ function webSend() { //Web Printing/Uploading
     var i=0;
     var line = "";
     var resp;
-    if (gFile.length > 0 && buffer > 0) {
+	if (buffer > maxUploadBuffer) {
+		buffer = maxUploadBuffer;
+	}
+    if (gFile.length > 0) {
         while(gFile.length > 0 && i < maxUploadCommands && (line.length + gFile[0].length + 3) < buffer ) {
-            line += gFile[0] + "%0A";
+            if (i != 0) {
+                line += "%0A";
+            }
+            line += gFile[0];
             gFile.shift();
             i++;
         }
         resp = $.askElle('gcode', line); //send chunk of gcodes, and get buffer response
-        resp.buff?buffer = resp.buff:buffer = 0;
+        buffer = resp.buff;
         modalMessage(gFilename + " upload progress", Math.floor((1 - (gFile.length / gFileLength)) * 100).toString()+"% Complete", false);
     }
 }
@@ -369,6 +404,9 @@ function listGFiles() {
             case (count > filesPerCol):
                 list = "gFileList2";
                 break;
+        }
+        if(jQuery.inArray(item, macroGs) >= 0) {
+            $('div#quicks td:eq(0)').append("<a href='#' role='button' class='btn btn-default disabled' itemprop='M28 "+item+"' id='quickgfile'>"+item+"</a>");
         }
         $('div#' + list).append('<button type="button" class="btn btn-default" id="gFileLink"><span class="pull-left">' + item + '</span><span id="fileDelete" class="glyphicon glyphicon-trash pull-right"></span></button>');
     });
@@ -673,4 +711,4 @@ Number.prototype.toHHMMSS = function() {
     }
     var time = hours + ':' + minutes + ':' + seconds;
     return time;
-}
+};
