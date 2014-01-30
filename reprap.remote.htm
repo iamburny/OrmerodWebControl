@@ -1,7 +1,7 @@
 <!DOCTYPE HTML> 
 <html>
     <head>
-        <title>RepRapPro v0.52</title>
+        <title>RepRapPro v0.53</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
         <!-- Bootstrap -->
@@ -191,65 +191,43 @@ Requires reset button on duet to restart">STOP!</button>
                                 <table class="table table-bordered" id="moveHead">
                                     <tbody>
                                         <tr>
-                                            <th colspan="3">
-                                    <div class="col-md-1"><button type="button" value='M18' id='motoroff' class="btn btn-primary btn-sm disabled" title='Disables stepper motors and allows axis to move freely.'>Motors off</button></div>
-                                    <div class="col-md-11 text-center">Move Head Position</div>
-                                    </th>
-                                    </tr>                                
+                                            <td>
+                                                <button type="button" value='G28' id='homeAll' class="btn btn-primary btn-sm center-block disabled" title='Disables stepper motors and allows axis to move freely.'>Home All</button>
+                                            </td>
+                                            <th colspan="2">
+                                                <div class="col-md-11 text-center">Move Head Position</div>
+                                            </th>
+                                        </tr>                                
                                     <tr>
                                         <td><button type="button" value="G28 X0" id="homeX" class="btn btn-primary center-block disabled">Home X</button></td>
                                         <td>
-                                            <div class="btn-group pull-right">
-                                                <button type="button" class="btn btn-default disabled"><span class="glyphicon glyphicon-chevron-left"></span>X-100</button>
-                                                <button type="button" class="btn btn-default disabled"><span class="glyphicon glyphicon-chevron-left"></span>X-10</button>
-                                                <button type="button" class="btn btn-default disabled"><span class="glyphicon glyphicon-chevron-left"></span>X-1</button>
-                                                <button type="button" class="btn btn-default disabled"><span class="glyphicon glyphicon-chevron-left"></span>X-0.1</button>
+                                            <div class="btn-group pull-right" id="Xminus">
                                             </div>
                                         </td>
                                         <td>
-                                            <div class="btn-group">
-                                                <button type="button" class="btn btn-default disabled">X+0.1<span class="glyphicon glyphicon-chevron-right"></span></button>
-                                                <button type="button" class="btn btn-default disabled">X+1<span class="glyphicon glyphicon-chevron-right"></span></button>
-                                                <button type="button" class="btn btn-default disabled">X+10<span class="glyphicon glyphicon-chevron-right"></span></button>
-                                                <button type="button" class="btn btn-default disabled">X+100<span class="glyphicon glyphicon-chevron-right"></span></button>
+                                            <div class="btn-group" id="Xplus">
                                             </div>
                                         </td>
                                     </tr>
                                     <tr>
                                         <td><button type="button" value="G28 Y0" id="homeY" class="btn btn-primary center-block disabled">Home Y</button></td>
                                         <td class="">
-                                            <div class="btn-group pull-right">
-                                                <button type="button" class="btn btn-default disabled"><span class="glyphicon glyphicon-chevron-left"></span>Y-100</button>
-                                                <button type="button" class="btn btn-default disabled"><span class="glyphicon glyphicon-chevron-left"></span>Y-10</button>
-                                                <button type="button" class="btn btn-default disabled"><span class="glyphicon glyphicon-chevron-left"></span>Y-1</button>
-                                                <button type="button" class="btn btn-default disabled"><span class="glyphicon glyphicon-chevron-left"></span>Y-0.1</button>
+                                            <div class="btn-group pull-right" id="Yminus">
                                             </div>
                                         </td>
                                         <td>
-                                            <div class="btn-group">
-                                                <button type="button" class="btn btn-default disabled">Y+0.1<span class="glyphicon glyphicon-chevron-right"></span></button>
-                                                <button type="button" class="btn btn-default disabled">Y+1<span class="glyphicon glyphicon-chevron-right"></span></button>
-                                                <button type="button" class="btn btn-default disabled">Y+10<span class="glyphicon glyphicon-chevron-right"></span></button>
-                                                <button type="button" class="btn btn-default disabled">Y+100<span class="glyphicon glyphicon-chevron-right"></span></button>
+                                            <div class="btn-group" id="Yplus">
                                             </div>
                                         </td>
                                     </tr>
                                     <tr>
                                         <td><button type="button" value="G28 Z0" id="homeZ" class="btn btn-primary center-block disabled">Home Z</button></td>
                                         <td>
-                                            <div class="btn-group pull-right">
-                                                <button type="button" class="btn btn-default disabled"><span class="glyphicon glyphicon-chevron-left"></span>Z-100</button>
-                                                <button type="button" class="btn btn-default disabled"><span class="glyphicon glyphicon-chevron-left"></span>Z-10</button>
-                                                <button type="button" class="btn btn-default disabled"><span class="glyphicon glyphicon-chevron-left"></span>Z-1</button>
-                                                <button type="button" class="btn btn-default disabled"><span class="glyphicon glyphicon-chevron-left"></span>Z-0.1</button>
+                                            <div class="btn-group pull-right" id="Zminus">
                                             </div>
                                         </td>
                                         <td>
-                                            <div class="btn-group">
-                                                <button type="button" class="btn btn-default disabled">Z+0.1<span class="glyphicon glyphicon-chevron-right"></span></button>
-                                                <button type="button" class="btn btn-default disabled">Z+1<span class="glyphicon glyphicon-chevron-right"></span></button>
-                                                <button type="button" class="btn btn-default disabled">Z+10<span class="glyphicon glyphicon-chevron-right"></span></button>
-                                                <button type="button" class="btn btn-default disabled">Z+100<span class="glyphicon glyphicon-chevron-right"></span></button>
+                                            <div class="btn-group" id="Zplus">
                                             </div>
                                         </td>
                                     </tr>                        
@@ -308,13 +286,16 @@ Requires reset button on duet to restart">STOP!</button>
                                 </table>
                             </div>
                             <div class="col-md-12" id="quicks">
-                                <table class="table table-bordered"><tr><td>
+                                <table class="table table-bordered">
+                                    <tr><td>
                                 <p><strong>Quick Commands</strong></p>
+                                <a href="#" role="button" class="btn btn-primary disabled" itemprop="M18" title='Disables stepper motors and allows axes to move freely'>Motors Off</a>                                
                                 <a href="#" role="button" class="btn btn-default disabled" title="Set Absolute Z zero">G92 Z0</a>
                                 <a href="#" role="button" class="btn btn-default disabled" title="Move X & Y axes to zero">G1 X0 Y0</a>
                                 <a href="#" role="button" class="btn btn-default disabled" title="Move Z axis to zero">G1 Z0</a>
                                 <a href="#" role="button" class="btn btn-default disabled" title="Move X & Y to Bed Centre">G1 X100 Y100</a>
-                                </td></tr></table>
+                                </td></tr>
+                                </table>
                             </div>
                         </div>
 
@@ -394,22 +375,26 @@ Requires reset button on duet to restart">STOP!</button>
                                 <div class="form-group">
                                     <label for="layerHeight" class="col-sm-2 control-label">Layer height</label>
                                     <div class="col-sm-2">
-                                        <input type="text" class="form-control" id="layerHeight" title="Default = 0.24" value="0.24" />
+                                        <input type="text" class="form-control" id="layerHeight" title="(default:0.24)" value="0.24" />
                                     </div>
                                 </div>
                                 <div class="form-group">
                                     <label for="pollDelay" class="col-sm-2 control-label">UI refresh ms</label>
                                     <div class="col-sm-2">
-                                        <input type="text" class="form-control" id="layerHeight" title="Setting this to small can cause the Duet to crash (default:2000)" value="2000" />
+                                        <input type="text" class="form-control" id="pollDelay" title="Setting this to small can cause the Duet to crash (default:1000)" value="1000" />
                                     </div>
-                                </div>                                
-                            </form>
-                            <div class="panel panel-default col-md-9">
-                                <div class="panel-body">
-                                    <strong>Config.g file</strong>
+                                </div>   
+                                <div class="checkbox">
+                                  <label>
+                                    <input type="checkbox" id="halfz" /> Use Half Z movements
+                                  </label>
                                 </div>
-                            </div>                            
+                                <br />
+                                <button type="button" id="saveSettings" class="btn btn-default">Save</button>
+                            </form>
+                           
                             <div class="col-md-8 btn-group-vertical" id="config">
+                                <br /><strong>Config.g file</strong><br />
                             </div>                            
                         </div>
                     </div>
