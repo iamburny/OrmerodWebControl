@@ -1,5 +1,6 @@
 /*! Reprap Ormerod Control v0.53 | by Matt Burnett <matt@burny.co.uk>. | open license
  */
+var ver = 0.54;
 var polling = false;
 var printing = false;
 var paused = false;
@@ -37,35 +38,11 @@ jQuery.extend({
     }
 });
 
-function loadSettings() {
-    var zwas = halfz;
-    pollDelay = $('div#settings input#pollDelay').val();
-    !pollDelay?pollDelay=1000:false;
-    layerHeight = $('div#settings input#layerHeight').val();
-    $('div#settings input#halfz').is(':checked')?halfz=1:halfz=0;  
-    if (zwas !== halfz) {
-        $('div#Zminus, div#Zplus').text('');
-        moveVals(['Z']);
-    } 
-}
-
-function moveVals(axis) {
-    axis.forEach(function(value) {
-        halfz&&value=='Z'?i=50:i=100;
-        var button = 0;
-        for (i; i >= 0.05; i=i/10) {
-            $('div#'+value+'minus').append('<button type="button" class="btn btn-default disabled">'+chevLeft+value+'-'+i.toString()+'</button>');
-            $('div#'+value+'plus').prepend('<button type="button" class="btn btn-default disabled">'+value+'+'+i.toString()+chevRight+'</button>');
-            button++;
-        }
-    });
-
-}
 
 $(document).ready(function() {
     loadSettings();
     moveVals(['X','Y','Z']);
-    
+
     ormerodIP = location.host;
     $('#hostLocation').text(ormerodIP);
 
@@ -108,6 +85,12 @@ $(document).ready(function() {
 
     message('success', 'Page Load Complete');
     $('button#connect, button#printing').removeClass('disabled');
+    
+    if (getHTMLver() < ver) {
+        //pop message
+        modalMessage("Update! v"+ver+" is Available", "The version of reprap.htm on you Duet SD card is "+getHTMLver()+", the latest version is "+ver+", to ensure compatibility with the latest javascript code and any new features you should upgrade. the newest reprap.htm can be found at <a href='https://github.com/iamburny/OrmerodWebControl'>https://github.com/iamburny/OrmerodWebControl</a>", true);
+    }
+    
 });
 
 $('#connect').on('click', function() {
@@ -263,12 +246,41 @@ $("div#gFileList, div#gFileList2, div#gFileList3, div#gFileList4").on('click', '
     listGFiles();
 });
 $("button#filereload").on('click', function() {
+    $('span#ulTitle').text("File Upload Status");
+    setProgress(0, "ul", 0,0);
     listGFiles();
 });
 
 $("div#settings button#saveSettings").on('click', function(){
     loadSettings();
 });
+
+
+function loadSettings() {
+    var zwas = halfz;
+    pollDelay = $('div#settings input#pollDelay').val();
+    !pollDelay?pollDelay=1000:false;
+    layerHeight = $('div#settings input#layerHeight').val();
+    $('div#settings input#halfz').is(':checked')?halfz=1:halfz=0;  
+    if (zwas !== halfz) {
+        $('div#Zminus, div#Zplus').text('');
+        moveVals(['Z']);
+    } 
+}
+
+function moveVals(axis) {
+    axis.forEach(function(value) {
+        halfz&&value=='Z'?i=50:i=100;
+        var button = 0;
+        for (i; i >= 0.05; i=i/10) {
+            $('div#'+value+'minus').append('<button type="button" class="btn btn-default disabled">'+chevLeft+value+'-'+i.toString()+'</button>');
+            $('div#'+value+'plus').prepend('<button type="button" class="btn btn-default disabled">'+value+'+'+i.toString()+chevRight+'</button>');
+            button++;
+        }
+    });
+
+}
+
 function isNumber(n) {
     return !isNaN(parseFloat(n)) && isFinite(n);
 }
@@ -315,8 +327,7 @@ function handleFileDrop(data, fName, action) {
                 gFilename = fname + '.g';
                 $.askElle('gcode', "M28 " + gFilename);
                 message("info", "File Upload of " + gFilename + " started");
-                modalMessage(gFilename + " upload progress", "Upload Started", false);
-                $('div#modal').modal({keyboard:false, show:true});
+                $('span#ulTitle').text("Uploading " + gFilename);
                 uploadLoop(action);
                 break;
             case "print":
@@ -343,9 +354,9 @@ function uploadLoop(action) { //Web Printing/Uploading
             case "upload":
                 $.askElle('gcode', "M29");
                 listGFiles();
-                modalMessage(gFilename + " upload Complete", "100% Complete in "+ duration, true);
-                $('#tabs a:eq(2)').tab('show'); //show gfile tab
-                message("info", "Uploaded File " + gFilename + "<br> in " + duration);                
+                $('span#ulTitle').text(gFilename + " Upload Complete in "+ duration);
+                //$('#tabs a:eq(2)').tab('show'); //show gfile tab
+                message("info", gFilename + " Upload Complete in "+ duration);                
                 break;
         }
     } else {
@@ -382,7 +393,7 @@ function webSend() { //Web Printing/Uploading
         }
         resp = $.askElle('gcode', line); //send chunk of gcodes, and get buffer response
         buffer = resp.buff;
-        modalMessage(gFilename + " upload progress", Math.floor((1 - (gFile.length / gFileLength)) * 100).toString()+"% Complete", false);
+        setProgress(Math.floor((1 - (gFile.length / gFileLength)) * 100), "ul", 0,0);
     }
 }
 
@@ -406,7 +417,9 @@ function listGFiles() {
                 break;
         }
         if(jQuery.inArray(item, macroGs) >= 0) {
-            $('div#quicks td:eq(0)').append("<a href='#' role='button' class='btn btn-default disabled' itemprop='M28 "+item+"' id='quickgfile'>"+item+"</a>");
+            if (!$('div#quicks a[itemprop="M28 '+item+'"]').text()) {
+                $('div#quicks td:eq(0)').append("<a href='#' role='button' class='btn btn-default disabled' itemprop='M28 "+item+"' id='quickgfile'>"+item+"</a>");
+            }
         }
         $('div#' + list).append('<button type="button" class="btn btn-default" id="gFileLink"><span class="pull-left">' + item + '</span><span id="fileDelete" class="glyphicon glyphicon-trash pull-right"></span></button>');
     });
@@ -451,14 +464,15 @@ function enableButtons(which) {
 
 function modalMessage(title, text, close) {
     $('div#modal h4.modal-title').text(title);
-    $('div#modal div.modal-body').text(text);
+    $('div#modal div.modal-body').html(text);
     close?$('div#modal button#modalClose').removeClass('hidden'):$('div#modal button#modalClose').addClass('hidden');
+    $('div#modal').modal({show:true});
 }
 
 function message(type, text) {
     var d = new Date();
     var time = zeroPrefix(d.getHours()) + ":" + zeroPrefix(d.getMinutes()) + ":" + zeroPrefix(d.getSeconds());
-    $('div#messages').prepend(time + " <span class='alert-" + type + "'>" + text + "</span><br />");
+    $('div#messageText').prepend(time + " <span class='alert-" + type + "'>" + text + "</span><br />");
 }
 
 function parseM503(response) {
@@ -518,7 +532,7 @@ function updatePage() {
         disableButtons("head");
         disableButtons("panic");
     } else {
-        $('button#connect').removeClass('btn-danger').addClass('btn-success').text("Connected");
+        $('button#connect').removeClass('btn-danger').addClass('btn-success').text("Online");
         //Connected Hoorahhh!
         if (messageSeqId !== status.seq) {
             messageSeqId = status.seq;
@@ -539,9 +553,9 @@ function updatePage() {
             currentLayer = whichLayer(status.poll[5]);
             if (isNumber(objHeight)) {
                 layerCount = Math.ceil(objHeight / layerHeight);
-                setProgress(Math.ceil((currentLayer / layerCount) * 100), currentLayer, layerCount);
+                setProgress(Math.ceil((currentLayer / layerCount) * 100), 'print', currentLayer, layerCount);
             } else {
-                setProgress(0, 0, 0);
+                setProgress(0, 'print', 0, 0);
             }
             layers(currentLayer);
         } else if (status.poll[0] === "I" && !paused ) {
@@ -629,23 +643,29 @@ function zeroPrefix(num) {
     return n;
 }
 
-function setProgress(percent, layer, layers) {
-    var barText = percent + "% Complete, Layer " + layer + " of " + layers;
+function setProgress(percent, bar, layer, layers) {
+    var barText = $('span#'+bar+'ProgressText');
+    var offText = $('span#'+bar+'OffBar');
+    var ptext = percent + "% Complete";
+    if(bar == 'print') {
+        ptext += ", Layer" + layer + " of " + layers;
+    }
+    
     switch (true) {
-        case layer !== 0 && percent <= 40:
-            $('span#offBar').text(barText).attr('title', barText);
-            $('span#progressText').text('').attr('title', '');
+        case percent <= 40 && percent > 0:
+            barText.text('').attr('title', '');
+            offText.text(ptext).attr('title', ptext);
             break;
-        case layer !== 0:
-            $('span#progressText').text(barText).attr('title', barText);
-            $('span#offBar').text('').attr('title', '');
+        case percent > 40:
+            barText.text(ptext).attr('title', ptext);
+            offText.text('').attr('title', '');
             break;
         default:
-            $('span#offBar').text('0% complete, layer 0 of 0');
-            $('span#progressText').text('').attr('title', '');
+            barText.text('').attr('title', '');
+            offText.text('0% complete, layer 0 of 0');
             break;
     }
-    $('div#progress').css("width", percent + "%");
+    $('div#'+bar+'Progress').css("width", percent + "%");
 }
 
 function parseLayerData() {
@@ -692,6 +712,10 @@ function poll() {
             poll();
         }, pollDelay);
     }
+}
+
+function getHTMLver() {
+    return document.title.substr(document.title.indexOf("v")+1);
 }
 
 Number.prototype.toHHMMSS = function() {
