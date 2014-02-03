@@ -6,7 +6,7 @@ var webPrinting = false;
 var printing = false;
 var paused = false;
 var chart,chart2,settings,ormerodIP,layerCount,currentLayer,objHeight,printStartTime,gFileLength,gFilename,buffer,timerStart;
-var maxUploadBuffer = 1024;
+var maxUploadBuffer = 800;
 var maxUploadCommands = 200;
 var messageSeqId = 0;
 var temps;
