@@ -1,10 +1,11 @@
 /*! Reprap Ormerod Web Control | by Matt Burnett <matt@burny.co.uk>. | open license
  */
 var ver = 0.60; //App version
-var polling = false;
+var polling = false; 
+var webPrinting = false;
 var printing = false;
 var paused = false;
-var chart,chart2,settings,ormerodIP,layerCount,currentLayer,objHeight,printStartTime,gFileLength,gFilename,buffer,timerStart,webPrinting;
+var chart,chart2,settings,ormerodIP,layerCount,currentLayer,objHeight,printStartTime,gFileLength,gFilename,buffer,timerStart;
 var maxUploadBuffer = 1024;
 var maxUploadCommands = 200;
 var messageSeqId = 0;
@@ -428,7 +429,7 @@ function uploadLoop(action) { //Web Printing/Uploading
     var wait = 5;
     var resp;
     switch (true) {
-        case webPrinting == false:
+        case webPrinting == false && action !== 'upload':
             //Break Loop stop sending
             $.askElle('gcode', 'M112');
             break;
@@ -746,7 +747,7 @@ function setProgress(percent, bar, layer, layers) {
     var offText = $('span#'+bar+'OffBar');
     var ptext = percent + "% Complete";
     if(bar == 'print') {
-        ptext += ", Layer" + layer + " of " + layers;
+        ptext += ", Layer " + layer + " of " + layers;
     }
     
     switch (true) {
