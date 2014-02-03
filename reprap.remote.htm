@@ -1,13 +1,13 @@
 <!DOCTYPE HTML> 
 <html>
     <head>
-        <title>Ormerod Control v0.54</title>
+        <title>Ormerod Control v0.60</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
         <!-- Bootstrap -->
         <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css" rel="stylesheet" type="text/css" />
         <link href="//iamburny.github.io/OrmerodWebControl/css/main.css" rel="stylesheet" type="text/css" />
-        <link href="//iamburny.github.io/OrmerodWebControl/favicon.ico" rel="icon" type="image/x-icon" />         
+        <link href="//iamburny.github.io/OrmerodWebControl/favicon.ico" rel="icon" type="image/x-icon" />            
         <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
         <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
         <!--[if lt IE 9]>
@@ -48,6 +48,7 @@
                                         <li><a href="#" id='gLink' title="Bed Comp P1">G1 X60 Y170</a></li>
                                         <li><a href="#" id='gLink' title="Bed Comp P2">G1 X170 Y170</a></li>
                                         <li><a href="#" id='gLink' title="Bed Comp P3">G1 X170 Y20</a></li>
+                                        <li class="divider"></li>
                                         <li class='disabled'><a href="#">Add Code</a></li>
                                     </ul>
                                 </div><!-- /btn-group -->
@@ -99,11 +100,8 @@ Requires reset button on duet to restart">STOP!</button>
                                                 <button type="button" id='setHeadTemp' class="btn btn-default disabled">Set</button>
                                                 <button type="button" class="btn btn-default dropdown-toggle disabled" data-toggle="dropdown"><span class="caret"></span></button>
                                                 <ul class="dropdown-menu">
-                                                    <li><a href="#" id='headTempLink' title='off'>0</a></li>
-                                                    <li><a href="#" id='headTempLink' title='PLA'>185</a></li>
-                                                    <li><a href="#" id='headTempLink' title='ABS'>240</a></li>
                                                     <li class="divider"></li>
-                                                    <li class="disabled"><a href="#">Add Temp</a></li>                                                
+                                                    <li><a href="#" id='addHeadTemp'>Add Temp</a></li>                                                
                                                 </ul>
                                             </div><!-- /btn-group -->
                                             <input type="text" id='headTempInput' class="form-control">
@@ -120,11 +118,8 @@ Requires reset button on duet to restart">STOP!</button>
                                                 <button type="button" id='setBedTemp' class="btn btn-default disabled">Set</button>
                                                 <button type="button" class="btn btn-default dropdown-toggle disabled" data-toggle="dropdown"><span class="caret"></span></button>
                                                 <ul class="dropdown-menu">
-                                                    <li><a href="#" id='bedTempLink' title='off'>0</a></li>
-                                                    <li><a href="#" id='bedTempLink' title='PLA'>65</a></li>
-                                                    <li><a href="#" id='bedTempLink' title='ABS'>120</a></li>
                                                     <li class="divider"></li>
-                                                    <li class="disabled"><a href="#">Add Temp</a></li>                                                    
+                                                    <li><a href="#" id='addBedTemp'>Add Temp</a></li>                                                    
                                                 </ul>
                                             </div><!-- /btn-group -->
                                             <input type="text" id='bedTempInput' class="form-control">
@@ -165,7 +160,7 @@ Requires reset button on duet to restart">STOP!</button>
                     <ul class="nav nav-tabs" id="tabs">
                         <li class="active"><a href="#control" data-toggle="tab">Control</a></li>
                         <li><a href="#printview" data-toggle="tab">Print Status</a></li>
-                        <li><a href="#gcodefiles" data-toggle="tab">Gcode files</a></li>                        
+                        <li><a href="#gcodefiles" data-toggle="tab">Gcode Files</a></li>                        
                         <li><a href="#messages" data-toggle="tab">Message Log</a></li>
                         <li><a href="#settings" data-toggle="tab">Settings</a></li>
                     </ul>
@@ -329,8 +324,7 @@ Requires reset button on duet to restart">STOP!</button>
                         </div>
                         <div class="tab-pane" id="gcodefiles">
                             <br />
-                            <div class="col-md-1"></div>
-                            <div class="col-md-10">
+                            <div class="col-md-10 col-md-offset-1">
                                 <!-- Gfiles list -->
                                 <div class="panel panel-default">
                                     <div class="panel-body">
@@ -376,16 +370,28 @@ direct from the Web Interface">Print G Drop</button>
 
                         <div class="tab-pane" id="messages" style="overflow-y: scroll; height: 320px">
                             <br />
-                            <div class="col-md-1"></div>
-                            <div class="col-md-10" id="messageText">
-                                
+                            <div class="col-md-10 col-md-offset-1 panel panel-default">
+                                <div class="panel-body">
+                                    <div class="col-md-1"><strong>Messages:</strong></div>
+
+                                    <div class="col-md-2 col-md-offset-7 checkbox">
+                                        <label>
+                                            <input type="checkbox" id="noOK" /> Show 'ok' 
+                                        </label>
+                                    </div>
+                                    <div class="col-md-1">
+                                        <button type="button" class="btn btn-default" id="clearLog">Clear Log</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-10 col-md-offset-1">
+                                <div id="messageText"> </div>
                             </div>
                         </div>
-
                         <div class="tab-pane" id="settings" style="overflow-y: scroll; height: 320px">
                             <br />
 
-                            <form class="form-horizontal col-md-10" role="form">
+                            <form class="form-horizontal col-md-10 col-md-offset-1" role="form">
                                 <div class="form-group">
                                     <label class="col-sm-2 control-label">Duet Firmware</label>
                                     <div class="col-sm-10">
@@ -410,10 +416,11 @@ direct from the Web Interface">Print G Drop</button>
                                   </label>
                                 </div>
                                 <br />
-                                <button type="button" id="saveSettings" class="btn btn-default">Save</button>
+                                <button type="button" id="saveSettings" class="btn btn-default">Apply & Save</button>
+                                <button type="button" id="delSettings" class="btn btn-default" title="Reset all settings, and Custom Temps/Buttons">Reset All</button>
                             </form>
 
-                            <div class="col-md-10 btn-group-vertical" id="config">
+                            <div class="col-md-10 col-md-offset-1 btn-group-vertical" id="config">
                                 <br /><strong>Config.g file</strong><br />
                             </div>                            
                         </div>
@@ -452,10 +459,10 @@ direct from the Web Interface">Print G Drop</button>
         <!-- Placed at the end of the document so the pages load faster -->
         <script src="//code.jquery.com/jquery-1.10.2.min.js"></script>
         <script src="//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.0/jquery.cookie.min.js"></script>         
         <script src="//cdnjs.cloudflare.com/ajax/libs/flot/0.8.1/jquery.flot.min.js"></script>
-        <script src="//chrismbarr.github.io/FileDrop/jQuery.FileDrop.min.js"></script>  
+        <script src="//chrismbarr.github.io/FileDrop/jQuery.FileDrop.min.js"></script>
         <script src="//iamburny.github.io/OrmerodWebControl/js/reprap.js"></script> 
-		 
     </body>
 </html>
 <!-- **EoF** -->

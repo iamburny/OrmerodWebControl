@@ -1,26 +1,24 @@
-/*! Reprap Ormerod Control v0.53 | by Matt Burnett <matt@burny.co.uk>. | open license
+/*! Reprap Ormerod Web Control | by Matt Burnett <matt@burny.co.uk>. | open license
  */
-var ver = 0.54;
+var ver = 0.60; //App version
 var polling = false;
 var printing = false;
 var paused = false;
-var pollDelay = 1000;
-var layerHeight,ormerodIP,layerCount,currentLayer,objHeight,printStartTime;
+var chart,chart2,settings,ormerodIP,layerCount,currentLayer,objHeight,printStartTime,gFileLength,gFilename,buffer,timerStart,webPrinting;
 var maxUploadBuffer = 1024;
 var maxUploadCommands = 200;
 var messageSeqId = 0;
+var temps;
 
-//Temp and Layer Chart
-var chart,chart2;
+//Temp/Layer Chart settings
 var maxDataPoints = 200;
 var chartData = [[], []];
 var maxLayerBars = 100;
 var layerData = [];
 var bedColour = "#454BFF"; //blue
 var headColour = "#FC2D2D"; //red
+
 var gFile = [];
-var gFileLength, gFilename, buffer, timerStart, webPrinting;
-var halfz = 0;
 var macroGs = ['setbed.g'];
 var chevLeft = "<span class='glyphicon glyphicon-chevron-left'></span>";
 var chevRight = "<span class='glyphicon glyphicon-chevron-right'></span>";
@@ -33,14 +31,18 @@ jQuery.extend({
             code = code.replace(/\n/g, '%0A').replace('+', '%2B').replace('-', '%2D').replace(/\s/g, '+');
             query = "?gcode="+code;
         }
-        $.ajax('//' + ormerodIP + '/rr_'+reqType+query, {async:false,dataType:"json",success:function(data){result = data;}});
+        var url = '//' + ormerodIP + '/rr_'+reqType+query;
+        $.ajax(url, {async:false,dataType:"json",success:function(data){result = data;}});
         return result;
     }
 });
 
 
 $(document).ready(function() {
+    $.cookie.json = true;
+    getCookies();
     loadSettings();
+    
     moveVals(['X','Y','Z']);
 
     ormerodIP = location.host;
@@ -88,7 +90,7 @@ $(document).ready(function() {
     
     if (getHTMLver() < ver) {
         //pop message
-        modalMessage("Update! v"+ver+" is Available", "The version of reprap.htm on you Duet SD card is "+getHTMLver()+", the latest version is "+ver+", to ensure compatibility with the latest javascript code and any new features you should upgrade. the newest reprap.htm can be found at <a href='https://github.com/iamburny/OrmerodWebControl'>https://github.com/iamburny/OrmerodWebControl</a>", true);
+        modalMessage("Update! v"+ver+" is Available", "The version of reprap.htm on you Duet SD card is "+getHTMLver()+", the latest version is "+ver+", to ensure compatibility and with the latest javascript code, new features, and correct functionality it is highly recommended that you upgrade. The newest reprap.htm can be found at <a href='https://github.com/iamburny/OrmerodWebControl'>https://github.com/iamburny/OrmerodWebControl</a>", true);
     }
     
 });
@@ -102,30 +104,24 @@ $('#connect').on('click', function() {
         updatePage();        
         listGFiles();
         $.askElle("gcode", "M115"); //get firmware
-        $.askElle("gcode", "M503"); //get config.g
         poll();
     }
 });
 
 //temp controls
-$('div#bedTemperature button#setBedTemp, div#bedTemperature a#bedTempLink').on('click', function() {
-    var code;
-    if (this.nodeName === 'BUTTON') {
-        code = $('input#bedTempInput').val();
-    } else {
-        code = $(this).text();
-    }
-    $.askElle('gcode', "M140 S" + code);
+$('div#bedTemperature button#setBedTemp').on('click', function() { 
+    $.askElle('gcode', "M140 S" + $('input#bedTempInput').val());
 });
-$('div#headTemperature button#setHeadTemp, div#headTemperature a#headTempLink').on('click', function() {
-    var head = 0;
-    var code;
-    if (this.nodeName === 'BUTTON') {
-        code = $('input#headTempInput').val();
-    } else {
-        code = $(this).text();
-    }
-    $.askElle('gcode', "G10 P" + head + " S" + code + "\nT" + head);
+$('div#bedTemperature').on('click', 'a#bedTempLink', function() {
+    $('input#bedTempInput').val($(this).text());
+    $.askElle('gcode', "M140 S" + $(this).text());
+});
+$('div#headTemperature button#setHeadTemp').on('click', function() {
+        $.askElle('gcode', "G10 P0 S" + $('input#headTempInput').val() + "\nT0");
+});
+$('div#headTemperature').on('click', 'a#headTempLink', function() {
+    $('input#headTempInput').val($(this).text());
+    $.askElle('gcode', "G10 P0 S" + $(this).text() + "\nT0");
 });
 $('input#bedTempInput').keydown(function(event) {
     if (event.which === 13) {
@@ -134,10 +130,29 @@ $('input#bedTempInput').keydown(function(event) {
     }
 });
 $('input#headTempInput').keydown(function(event) {
-    var head = 0;
     if (event.which === 13) {
         event.preventDefault();
-        $.askElle('gcode', "G10 P" + head + " S" + $(this).val() + "\nT" + head);
+        $.askElle('gcode', "G10 P0 S" + $(this).val() + "\nT0");
+    }
+});
+$('div#bedTemperature ul').on('click', 'a#addBedTemp', function() {
+    var tempVal = $('input#bedTempInput').val();
+    if (tempVal != "") {
+        temps.bed.unshift(parseInt(tempVal));
+        setCookies();
+        loadSettings();
+    }else{
+        modalMessage("Error Adding Bed Temp!", "You must enter a Temperature to add it to the dropdown list", close);
+    }
+});
+$('div#headTemperature ul').on('click', 'a#addHeadTemp', function() {
+    var tempVal = $('input#headTempInput').val();
+    if (tempVal != "") {
+        temps.head.unshift(parseInt(tempVal));
+        setCookies();
+        loadSettings();
+    }else{
+        modalMessage("Error Adding Head Temp!", "You must enter a Temperature to add it to the dropdown list", close);
     }
 });
 
@@ -154,21 +169,28 @@ $('div#feed button#feed').on('click', function() {
 });
 
 //gcodes
-$('div#sendG, div#sendG, div#quicks').on('click', 'button#txtinput, a', function() {
+$('div#sendG button#txtinput, div#sendG a').on('click', function() {    
     var code;
     if (this.nodeName === 'BUTTON') {
-        code = $('input#gInput').val();
-    } else if (this.attributes.itemprop) {
-        code = this.attributes.itemprop.value;
+        code = $('input#gInput').val().toUpperCase();
     } else {
         code = $(this).text();
     }
     $.askElle('gcode', code); //send gcode
 });
+$('div#quicks').on('click', 'a', function() {
+    var code;
+    if (this.attributes.itemprop) {
+        code = this.attributes.itemprop.value;
+    } else {
+        code = $(this).text();
+    }
+   $.askElle('gcode', code);
+});
 $('input#gInput').keydown(function(event) {
     if (event.which === 13) {
         event.preventDefault();
-        $.askElle('gcode', $(this).val());
+        $.askElle('gcode', $(this).val().toUpperCase());
     }
 });
 
@@ -196,12 +218,16 @@ $('div#panicBtn button').on('click', function() {
     switch (btnVal) {
         case "M112":
             //panic stop
+            window.stop();
+            webPrinting = false;
             polling = false;
             paused = false;
             break;
         case "reset":
             //reset printing after pause
+            webPrinting = false;
             printing = false;
+            paused = false;
             btnVal = "";
             //switch off heaters
             $.askElle('gcode', "M140 S0"); //bed off
@@ -251,26 +277,83 @@ $("button#filereload").on('click', function() {
     listGFiles();
 });
 
+//Settings/cookie buttons
 $("div#settings button#saveSettings").on('click', function(){
-    loadSettings();
+    saveSettings();
+});
+$("div#settings button#delSettings").on('click', function(){
+    delSettings();
 });
 
+$('a[data-toggle="tab"]').on('show.bs.tab', function(e) {
+    if (e.target.hash == "#settings") {
+        $.askElle("gcode", "M503"); //get config.g on setting view
+    }
+});
+
+//Messages 
+$("div#messages button#clearLog").on('click', function(){
+    message('clear', '');
+});
+
+function getCookies() {
+    //if none use defaults here, probably move them elsewhere at some point!
+    settings = $.cookie('settings');
+    temps = $.cookie('temps');
+    if (!settings) {
+        settings = { pollDelay : 1000, layerHeight : 0.24, halfz : 0, noOK : 0 };
+    }
+    if (!temps) {
+        temps = {'bed' : [120,65,0], 'head' : [240,185,0]};
+    }
+}
+
+function setCookies() {
+    $.removeCookie('settings', { path: '/' });
+    $.cookie('settings', settings, { expires: 30, path: '/' });
+    $.removeCookie('temps', { path: '/' });
+    $.cookie('temps', temps, { expires: 30, path: '/' });
+}
 
 function loadSettings() {
-    var zwas = halfz;
-    pollDelay = $('div#settings input#pollDelay').val();
-    !pollDelay?pollDelay=1000:false;
-    layerHeight = $('div#settings input#layerHeight').val();
-    $('div#settings input#halfz').is(':checked')?halfz=1:halfz=0;  
+    $('div#settings input#pollDelay').val(settings.pollDelay.toString());
+    $('div#settings input#layerHeight').val(settings.layerHeight.toString())
+    settings.halfz==1?$('div#settings input#halfz').prop('checked', true):$('div#settings input#halfz').prop('checked', false);
+    settings.noOK==1?$('div#messages input#noOK').prop('checked', true):$('div#messages input#noOK').prop('checked', false);
+    
+    $('div#bedTemperature ul').html('<li class="divider"></li><li><a href="#" id="addBedTemp">Add Temp</a></li>');
+    $('div#headTemperature ul').html('<li class="divider"></li><li><a href="#" id="addHeadTemp">Add Temp</a></li>');
+    temps.bed.forEach(function(item){
+        $('div#bedTemperature ul').prepend('<li><a href="#" id="bedTempLink">'+item+'</a></li>');
+    });
+    temps.head.forEach(function(item){
+        $('div#headTemperature ul').prepend('<li><a href="#" id="headTempLink">'+item+'</a></li>');
+    });
+}
+
+function delSettings() {
+    $.removeCookie('settings', { path: '/' });
+    $.removeCookie('temps', { path: '/' });
+    getCookies();
+    loadSettings();
+}
+
+function saveSettings() {
+    var zwas = settings.halfz;
+    settings.pollDelay = parseInt($('div#settings input#pollDelay').val());
+    settings.layerHeight = parseFloat($('div#settings input#layerHeight').val());
+    $('div#settings input#halfz').is(':checked')?settings.halfz=1:settings.halfz=0;  
+    $('div#settings input#noOK').is(':checked')?settings.noOK=1:settings.noOK=0;  
     if (zwas !== halfz) {
         $('div#Zminus, div#Zplus').text('');
         moveVals(['Z']);
     } 
+    setCookies();
 }
 
 function moveVals(axis) {
     axis.forEach(function(value) {
-        halfz&&value=='Z'?i=50:i=100;
+        settings.halfz&&value=='Z'?i=50:i=100;
         var button = 0;
         for (i; i >= 0.05; i=i/10) {
             $('div#'+value+'minus').append('<button type="button" class="btn btn-default disabled">'+chevLeft+value+'-'+i.toString()+'</button>');
@@ -312,8 +395,8 @@ function fileDrop() {
 }
 
 function handleFileDrop(data, fName, action) {
-    var ext = getFileExt(fName);
-    var fname = getFileName(fName);
+    var ext = getFileExt(fName).toLowerCase();
+    var fname = getFileName(fName).toLowerCase();
     if (ext !== "g" && ext !== "gco" && ext !== "gcode") {
         alert('Not a G Code file');
         return false;
@@ -334,6 +417,7 @@ function handleFileDrop(data, fName, action) {
                 gFilename = fName;
                 message("info", "Web Printing " + gFilename + " started");
                 webPrinting = true;
+                $('#tabs a:eq(1)').tab('show'); //show print status after drop tab
                 uploadLoop(action);
                 break;
         }
@@ -343,35 +427,44 @@ function handleFileDrop(data, fName, action) {
 function uploadLoop(action) { //Web Printing/Uploading
     var wait = 5;
     var resp;
-    if (gFile.length === 0) {
-        //finished file content, stop loop, end tasks
-        var duration = (timer() - timerStart).toHHMMSS();
-        switch (action) {
-            case "print":
-                webPrinting = false;
-                message("success", "Finished web printing " + gFilename + " in " + duration);                
-                break;
-            case "upload":
-                $.askElle('gcode', "M29");
-                listGFiles();
-                $('span#ulTitle').text(gFilename + " Upload Complete in "+ duration);
-                //$('#tabs a:eq(2)').tab('show'); //show gfile tab
-                message("info", gFilename + " Upload Complete in "+ duration);                
-                break;
-        }
-    } else {
-        if (buffer == null || buffer < 100) {
-            resp = $.askElle('poll', '');
-            buffer = resp.buff;
-        }
-        if (buffer < 100) {
-            wait = 20;
-        } else {
-            webSend();
-        }
-        setTimeout(function() {
-            uploadLoop(action);
-        }, wait);
+    switch (true) {
+        case webPrinting == false:
+            //Break Loop stop sending
+            $.askElle('gcode', 'M112');
+            break;
+        case gFile.length === 0:
+            //Finished with Dropped file, stop loop, end tasks
+            var duration = (timer() - timerStart).toHHMMSS();
+            switch (action) {
+                case "print":
+                    webPrinting = false;
+                    resetLayerData();
+                    message("success", "Finished web printing " + gFilename + " in " + duration);                
+                    break;
+                case "upload":
+                    $.askElle('gcode', "M29");
+                    listGFiles();
+                    $('span#ulTitle').text(gFilename + " Upload Complete in "+ duration);
+                    message("info", gFilename + " Upload Complete in "+ duration);                
+                    break;
+            }
+            break;
+        default:
+            if (buffer == null || buffer < 100) {
+                resp = $.askElle('poll', '');
+                buffer = resp.buff;
+            }
+            if (buffer < 100) {
+                wait = 20;
+            }else if (paused === true) {
+                wait = 2000;
+            } else {
+                webSend();
+            }
+            setTimeout(function() {
+                uploadLoop(action);
+            }, wait);
+            break;
     }
 }
 
@@ -393,7 +486,7 @@ function webSend() { //Web Printing/Uploading
         }
         resp = $.askElle('gcode', line); //send chunk of gcodes, and get buffer response
         buffer = resp.buff;
-        setProgress(Math.floor((1 - (gFile.length / gFileLength)) * 100), "ul", 0,0);
+        if (!webPrinting) setProgress(Math.floor((1 - (gFile.length / gFileLength)) * 100), "ul", 0,0);
     }
 }
 
@@ -472,15 +565,11 @@ function modalMessage(title, text, close) {
 function message(type, text) {
     var d = new Date();
     var time = zeroPrefix(d.getHours()) + ":" + zeroPrefix(d.getMinutes()) + ":" + zeroPrefix(d.getSeconds());
-    $('div#messageText').prepend(time + " <span class='alert-" + type + "'>" + text + "</span><br />");
-}
-
-function parseM503(response) {
-    $('div#config').text('');
-    var config = response.split(/\n/g);
-    config.forEach(function(item) {
-        $('div#config').append("<span class='alert-info col-md-9'>" + item + "</span><br />");
-    });
+    if (type == 'clear') {
+        $('div#messageText').html(time + " <span class='alert-info'>Log Cleared</span><br />");
+    } else {
+        $('div#messageText').prepend(time + " <span class='alert-" + type + "'>" + text + "</span><br />");
+    }
 }
 
 function parseResponse(res) {
@@ -489,20 +578,29 @@ function parseResponse(res) {
             message('info', '<strong>M111</strong><br />' + res.replace(/\n/g, "<br />"));    
             break;
         case res.indexOf('Firmware') >= 0:
+            var strt = res.indexOf("SION:") +5 ;
+            var end = res.indexOf(" ELEC");
             if ($('p#firmVer').text() === "") {
-                $('p#firmVer').text(res);
+                $('p#firmVer').text(res.substr(strt, end - strt));
             }
             message('info', '<strong>M115</strong><br />' + res.replace(/\n/g, "<br />"));
             break;
         case res.indexOf('M550') >= 0:
             message('info', '<strong>M503</strong><br />' + res.replace(/\n/g, "<br />")); 
-            parseM503(res);
+            $('div#config').html("<span class='col-md-9'><br/><strong>Config.g File Contents:</strong></span>");
+            res.split(/\n/g).forEach(function(item) {
+                $('div#config').append("<span class='alert-info col-md-9'>" + item + "</span><br />");
+            });            
+            break;
+        case res == "ok":
+            if ($('div#messages input#noOK').is(':checked')) {
+                message('info', res);
+            }
             break;
         default:
             message('info', res);
             break;
     }
-
 }
 
 function homedWarning(x,y,z) {
@@ -542,7 +640,7 @@ function updatePage() {
 
         homedWarning(status.hx,status.hy,status.hz);
 
-        if (status.poll[0] === "P" || webPrinting) {
+        if (status.poll[0] === "P" || (webPrinting && !paused)) {
             //printing
             printing = true;
             objHeight = $('input#objheight').val();
@@ -552,7 +650,7 @@ function updatePage() {
             disableButtons("gfilelist");
             currentLayer = whichLayer(status.poll[5]);
             if (isNumber(objHeight)) {
-                layerCount = Math.ceil(objHeight / layerHeight);
+                layerCount = Math.ceil(objHeight / settings.layerHeight);
                 setProgress(Math.ceil((currentLayer / layerCount) * 100), 'print', currentLayer, layerCount);
             } else {
                 setProgress(0, 'print', 0, 0);
@@ -573,7 +671,7 @@ function updatePage() {
             enableButtons('head');
         } else {
             //unknown state
-            printing = paused = false;
+            webPrinting = printing = paused = false;
             $('button#printing').removeClass('btn-warning').removeClass('btn-success').addClass('btn-danger').text("Error!");
             message('danger', 'Unknown Poll State : ' + status.poll[0]);
         }
@@ -595,7 +693,7 @@ function updatePage() {
 }
 
 function whichLayer(currZ) {
-    var n = Math.round(currZ / layerHeight);
+    var n = Math.round(currZ / settings.layerHeight);
     if (n === currentLayer + 1 && currentLayer) {
         layerChange();
     }
@@ -710,7 +808,7 @@ function poll() {
         setTimeout(function() {
             updatePage();
             poll();
-        }, pollDelay);
+        }, settings.pollDelay);
     }
 }
 
