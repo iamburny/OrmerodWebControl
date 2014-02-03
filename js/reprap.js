@@ -511,8 +511,8 @@ function listGFiles() {
                 break;
         }
         if(jQuery.inArray(item, macroGs) >= 0) {
-            if (!$('div#quicks a[itemprop="M28 '+item+'"]').text()) {
-                $('div#quicks td:eq(0)').append("<a href='#' role='button' class='btn btn-default disabled' itemprop='M28 "+item+"' id='quickgfile'>"+item+"</a>");
+            if (!$('div#quicks a[itemprop="M23 '+item+'%0AM24"]').text()) {
+                $('div#quicks td:eq(0)').append('<a href="#" role="button" class="btn btn-default disabled" itemprop="M23 '+item+'%0AM24" id="quickgfile">'+item+'</a>');
             }
         }
         $('div#' + list).append('<button type="button" class="btn btn-default" id="gFileLink"><span class="pull-left">' + item + '</span><span id="fileDelete" class="glyphicon glyphicon-trash pull-right"></span></button>');
