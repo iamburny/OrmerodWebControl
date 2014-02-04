@@ -226,10 +226,10 @@ $('div#panicBtn button').on('click', function() {
             break;
         case "reset":
             //reset printing after pause
-            webPrinting = false;
+            gFile = [];
             printing = false;
             paused = false;
-            btnVal = "";
+            btnVal = "M1";
             //switch off heaters
             $.askElle('gcode', "M140 S0"); //bed off
             $.askElle('gcode', "G10 P0 S0\nT0"); //head 0 off
@@ -431,8 +431,7 @@ function uploadLoop(action) { //Web Printing/Uploading
     switch (true) {
         case webPrinting == false && action !== 'upload':
             //Break Loop stop sending
-            $.askElle('gcode', 'M112');
-            break;
+           gFile = [];
         case gFile.length === 0:
             //Finished with Dropped file, stop loop, end tasks
             var duration = (timer() - timerStart).toHHMMSS();
