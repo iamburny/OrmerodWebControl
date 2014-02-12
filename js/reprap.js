@@ -1,15 +1,14 @@
 /*! Reprap Ormerod Web Control | by Matt Burnett <matt@burny.co.uk>. | open license
  */
-var ver = 0.60; //App version
+var ver = 0.65; //App version
 var polling = false; 
 var webPrinting = false;
 var printing = false;
 var paused = false;
-var chart,chart2,settings,ormerodIP,layerCount,currentLayer,objHeight,printStartTime,gFileLength,gFilename,buffer,timerStart;
+var chart,chart2,ormerodIP,layerCount,currentLayer,objHeight,printStartTime,gFileLength,gFilename,buffer,timerStart,storage;
 var maxUploadBuffer = 800;
 var maxUploadCommands = 200;
 var messageSeqId = 0;
-var temps;
 
 //Temp/Layer Chart settings
 var maxDataPoints = 200;
@@ -38,9 +37,8 @@ jQuery.extend({
     }
 });
 
-
 $(document).ready(function() {
-    $.cookie.json = true;
+    storage=$.localStorage;
     getCookies();
     loadSettings();
     
@@ -52,7 +50,7 @@ $(document).ready(function() {
     if ($.support.fileDrop) {
         fileDrop();
     } else {
-        alert('Your browser does not support file drag-n-drop :(');
+        alert('Your browser does not support file drag-n-drop :( \nYou have to Click and select a file instead');
     }
 
     //fill chart with dummy data
@@ -139,8 +137,9 @@ $('input#headTempInput').keydown(function(event) {
 $('div#bedTemperature ul').on('click', 'a#addBedTemp', function() {
     var tempVal = $('input#bedTempInput').val();
     if (tempVal != "") {
-        temps.bed.unshift(parseInt(tempVal));
-        setCookies();
+        var temps = storage.get('temps', 'bed');
+        temps.unshift(parseInt(tempVal));
+        storage.set('temps.bed', temps);
         loadSettings();
     }else{
         modalMessage("Error Adding Bed Temp!", "You must enter a Temperature to add it to the dropdown list", close);
@@ -149,8 +148,9 @@ $('div#bedTemperature ul').on('click', 'a#addBedTemp', function() {
 $('div#headTemperature ul').on('click', 'a#addHeadTemp', function() {
     var tempVal = $('input#headTempInput').val();
     if (tempVal != "") {
-        temps.head.unshift(parseInt(tempVal));
-        setCookies();
+        var temps = storage.get('temps', 'head');
+        temps.unshift(parseInt(tempVal));
+        storage.set('temps.head', temps);
         loadSettings();
     }else{
         modalMessage("Error Adding Head Temp!", "You must enter a Temperature to add it to the dropdown list", close);
@@ -259,8 +259,8 @@ $("div#gFileList, div#gFileList2, div#gFileList3, div#gFileList4").on('click', '
         var filename = $(this).text();
         $.askElle('gcode', "M23 " + filename + "\nM24");
         message('success', "G files [" + filename + "] sent to print");
-        $('#tabs a:eq(1)').tab('show');
         resetLayerData();
+        $('#tabs a:eq(1)').tab('show');
     }
 }).on('mouseover', 'span#fileDelete', function() {
     $(this).parent().addClass('btn-danger');
@@ -276,6 +276,24 @@ $("button#filereload").on('click', function() {
     $('span#ulTitle').text("File Upload Status");
     setProgress(0, "ul", 0,0);
     listGFiles();
+});
+$('#printGfile').on('click', function(){
+    $('input#printGselect').click();
+});
+$('#uploadGfile').on('click', function(){
+    $('input#uploadGselect').click();
+});
+$("input#printGselect:file").change(function (e){
+    var file = this.files[0];
+    readFile(this.files[0], function(e) {
+        handleFileDrop(e.target.result, file.name, 'print');
+    });
+});
+$("input#uploadGselect:file").change(function (e){
+    var file = this.files[0];
+    readFile(this.files[0], function(e) {
+        handleFileDrop(e.target.result, file.name, 'upload');
+    });
 });
 
 //Settings/cookie buttons
@@ -299,62 +317,51 @@ $("div#messages button#clearLog").on('click', function(){
 
 function getCookies() {
     //if none use defaults here, probably move them elsewhere at some point!
-    settings = $.cookie('settings');
-    temps = $.cookie('temps');
-    if (!settings) {
-        settings = { pollDelay : 1000, layerHeight : 0.24, halfz : 0, noOK : 0 };
+    if (!storage.get('settings')) {
+        storage.set('settings', { pollDelay : 1000, layerHeight : 0.24, halfz : 0, noOK : 0 });
     }
-    if (!temps) {
-        temps = {'bed' : [120,65,0], 'head' : [240,185,0]};
+    if (!storage.get('temps')) {
+        storage.set('temps', {'bed' : [120,65,0], 'head' : [240,185,0]});
     }
-}
-
-function setCookies() {
-    $.removeCookie('settings', { path: '/' });
-    $.cookie('settings', settings, { expires: 30, path: '/' });
-    $.removeCookie('temps', { path: '/' });
-    $.cookie('temps', temps, { expires: 30, path: '/' });
 }
 
 function loadSettings() {
-    $('div#settings input#pollDelay').val(settings.pollDelay.toString());
-    $('div#settings input#layerHeight').val(settings.layerHeight.toString())
-    settings.halfz==1?$('div#settings input#halfz').prop('checked', true):$('div#settings input#halfz').prop('checked', false);
-    settings.noOK==1?$('div#messages input#noOK').prop('checked', true):$('div#messages input#noOK').prop('checked', false);
+    $('div#settings input#pollDelay').val(storage.get('settings', 'pollDelay').toString());
+    $('div#settings input#layerHeight').val(storage.get('settings', 'layerHeight').toString().toString())
+    storage.get('settings', 'halfz')==1?$('div#settings input#halfz').prop('checked', true):$('div#settings input#halfz').prop('checked', false);
+    storage.get('settings', 'noOK')==1?$('div#messages input#noOK').prop('checked', true):$('div#messages input#noOK').prop('checked', false);
     
     $('div#bedTemperature ul').html('<li class="divider"></li><li><a href="#" id="addBedTemp">Add Temp</a></li>');
     $('div#headTemperature ul').html('<li class="divider"></li><li><a href="#" id="addHeadTemp">Add Temp</a></li>');
-    temps.bed.forEach(function(item){
+    storage.get('temps', 'bed').forEach(function(item){
         $('div#bedTemperature ul').prepend('<li><a href="#" id="bedTempLink">'+item+'</a></li>');
     });
-    temps.head.forEach(function(item){
+    storage.get('temps', 'head').forEach(function(item){
         $('div#headTemperature ul').prepend('<li><a href="#" id="headTempLink">'+item+'</a></li>');
     });
 }
 
 function delSettings() {
-    $.removeCookie('settings', { path: '/' });
-    $.removeCookie('temps', { path: '/' });
+    storage.removeAll();
     getCookies();
     loadSettings();
 }
 
 function saveSettings() {
-    var zwas = settings.halfz;
-    settings.pollDelay = parseInt($('div#settings input#pollDelay').val());
-    settings.layerHeight = parseFloat($('div#settings input#layerHeight').val());
-    $('div#settings input#halfz').is(':checked')?settings.halfz=1:settings.halfz=0;  
-    $('div#settings input#noOK').is(':checked')?settings.noOK=1:settings.noOK=0;  
-    if (zwas !== halfz) {
+    var zwas = storage.get('settings', 'halfz');
+    storage.set('settings.pollDelay', parseInt($('div#settings input#pollDelay').val()));
+    storage.set('settings.layerHeight', parseFloat($('div#settings input#layerHeight').val()));
+    $('div#settings input#halfz').is(':checked')?storage.set('settings.halfz','1'):storage.set('settings.halfz','0');  
+    $('div#settings input#noOK').is(':checked')?storage.set('settings.noOk','1'):storage.set('settings.noOK','0');
+    if (zwas !== storage.get('settings', 'halfz')) {
         $('div#Zminus, div#Zplus').text('');
         moveVals(['Z']);
     } 
-    setCookies();
 }
 
 function moveVals(axis) {
     axis.forEach(function(value) {
-        settings.halfz&&value=='Z'?i=50:i=100;
+        storage.get('settings','halfz')&&value=='Z'?i=50:i=100;
         var button = 0;
         for (i; i >= 0.05; i=i/10) {
             $('div#'+value+'minus').append('<button type="button" class="btn btn-default disabled">'+chevLeft+value+'-'+i.toString()+'</button>');
@@ -418,11 +425,36 @@ function handleFileDrop(data, fName, action) {
                 gFilename = fName;
                 message("info", "Web Printing " + gFilename + " started");
                 webPrinting = true;
+                resetLayerData();
                 $('#tabs a:eq(1)').tab('show'); //show print status after drop tab
+                var h = findHeight();
+                if (isNumber(h)) $('input#objheight').val(h.toString());
                 uploadLoop(action);
                 break;
         }
     }
+}
+
+function readFile(file, onLoadCallback){
+    //read file from click-choose type printing/upload
+    var reader = new FileReader();
+    reader.onload = onLoadCallback;
+    reader.readAsText(file);
+}
+
+function findHeight() {
+    //find last G1 Z command from end backwards and return height in mm
+    var height=0;
+    var i=gFileLength - 1;
+    var linePos=0;
+    while (height===0 && i > 1) {
+        linePos = gFile[i].indexOf('G1 Z');
+        if (linePos >= 0) {
+            height = gFile[i].substr(linePos+4, gFile[i].indexOf(' ', linePos+4)-(linePos+4));
+        }
+        i--;
+    }
+    return height;
 }
 
 function uploadLoop(action) { //Web Printing/Uploading
@@ -438,7 +470,7 @@ function uploadLoop(action) { //Web Printing/Uploading
             switch (action) {
                 case "print":
                     webPrinting = false;
-                    resetLayerData();
+                    //resetLayerData();
                     message("success", "Finished web printing " + gFilename + " in " + duration);                
                     break;
                 case "upload":
@@ -536,7 +568,10 @@ function disableButtons(which) {
             $('button#reset').addClass('hidden');
             break;
         case "gfilelist":
-            $('div#gFileList button, div#gFileList2 button, div#gFileList3 button').addClass('disabled');
+            $('div#gcodefiles button').addClass('disabled');
+            break;
+        case "sendG":
+            $('div#sendG button, div#sendG a, input#gInput').addClass('disabled');
             break;
     }
 }
@@ -550,8 +585,11 @@ function enableButtons(which) {
             $('div#panicBtn button').removeClass('disabled');
             break;
         case "gfilelist":
-            $('div#gFileList button, div#gFileList2 button, div#gFileList3 button').removeClass('disabled');
+            $('div#gcodefiles button').removeClass('disabled');
             break;
+        case "sendG":
+            $('div#sendG button, div#sendG a, input#gInput').removeClass('disabled');
+            break;            
     }
 }
 
@@ -637,9 +675,7 @@ function updatePage() {
             parseResponse(status.resp);
         }
         buffer = status.buff;
-
         homedWarning(status.hx,status.hy,status.hz);
-
         if (status.poll[0] === "P" || (webPrinting && !paused)) {
             //printing
             printing = true;
@@ -650,8 +686,8 @@ function updatePage() {
             disableButtons("gfilelist");
             currentLayer = whichLayer(status.poll[5]);
             if (isNumber(objHeight)) {
-                layerCount = Math.ceil(objHeight / settings.layerHeight);
-                setProgress(Math.ceil((currentLayer / layerCount) * 100), 'print', currentLayer, layerCount);
+                layerCount = Math.ceil(objHeight / storage.get('settings','layerHeight'));
+                setProgress(Math.floor((currentLayer / layerCount) * 100), 'print', currentLayer, layerCount);
             } else {
                 setProgress(0, 'print', 0, 0);
             }
@@ -692,8 +728,46 @@ function updatePage() {
     }
 }
 
+function estEndTime() {
+    var firstLayer = 2;
+    if (($('div#settings input#ignoreFirst').is(':checked'))) {
+        firstLayer = 2;
+    }
+    var d = new Date();
+    var utime = d.getTime();
+    var layerLeft = layerCount - currentLayer;
+    if (layerData.length > firstLayer) {
+        var lastLayer = layerData[layerData.length - 1] - layerData[layerData.length - 2];
+        var llTimeR = new Date(utime + (lastLayer * layerLeft));
+        $('span#llTimeR').text((lastLayer * layerLeft).toHHMMSS()); 
+        $('span#llTime').text(llTimeR.toLocaleTimeString()); 
+
+        //average all layers 
+        var t=0;
+        for (var i = firstLayer; i <= (layerData.length-1) ;i++ ) {
+            t += layerData[i] - layerData[i-1];
+        }
+        var avgAll = t / layerData.length-firstLayer;
+        var avgAllR = new Date(utime + (avgAll * layerLeft));
+        $('span#avgAllR').text((avgAll * layerLeft).toHHMMSS()); 
+        $('span#avgAll').text(avgAllR.toLocaleTimeString()); 
+        
+        if (layerData.length > (5 + firstLayer)) {
+            //avg last 5 layers
+            t=0;
+            for (var i = firstLayer; i <= (4+firstLayer) ;i++ ) {
+                t += layerData[layerData.length - i] - layerData[layerData.length - i-1] ;
+            }
+            var avg5 = t / 5;
+            var avg5R = new Date(utime + (avg5 * layerLeft));
+            $('span#avg5R').text((avg5 * layerLeft).toHHMMSS()); 
+            $('span#avg5').text(avg5R.toLocaleTimeString()); 
+        }
+    }
+}
+
 function whichLayer(currZ) {
-    var n = Math.round(currZ / settings.layerHeight);
+    var n = Math.round(currZ / storage.get('settings','layerHeight'));
     if (n === currentLayer + 1 && currentLayer) {
         layerChange();
     }
@@ -701,11 +775,14 @@ function whichLayer(currZ) {
 }
 
 function resetLayerData() {
-    //clear layercount
+    //clear layer count,times and chart
     layerData = [];
     printStartTime = null;
-    $('span#elapsed, span#lastlayer').text("00:00:00");
-
+    setProgress(0, 'print', 0, 0);
+    $('span#elapsed, span#lastlayer, table#finish span').text("00:00:00");
+    chart2.setData(parseLayerData());
+    chart2.setupGrid();
+    chart2.draw();
 }
 
 function layerChange() {
@@ -718,6 +795,9 @@ function layerChange() {
         chart2.setData(parseLayerData());
         chart2.setupGrid();
         chart2.draw();
+        if (isNumber(objHeight)) {
+            estEndTime();
+        }
     }
 }
 
@@ -808,7 +888,7 @@ function poll() {
         setTimeout(function() {
             updatePage();
             poll();
-        }, settings.pollDelay);
+        }, storage.get('settings', 'pollDelay'));
     }
 }
 
@@ -817,20 +897,15 @@ function getHTMLver() {
 }
 
 Number.prototype.toHHMMSS = function() {
+    var h,m;
     var sec_num = Math.floor(this / 1000); // don't forget the second param
     var hours = Math.floor(sec_num / 3600);
     var minutes = Math.floor((sec_num - (hours * 3600)) / 60);
     var seconds = sec_num - (hours * 3600) - (minutes * 60);
-
-    if (hours < 10) {
-        hours = "0" + hours;
-    }
-    if (minutes < 10) {
-        minutes = "0" + minutes;
-    }
-    if (seconds < 10) {
-        seconds = "0" + seconds;
-    }
-    var time = hours + ':' + minutes + ':' + seconds;
-    return time;
+    hours < 10?hours="0"+hours:false;
+    minutes < 10?minutes="0"+minutes:false;
+    seconds < 10?seconds="0"+seconds:false;
+    hours=='00'?h="":h=hours+"h ";
+    minutes=='00'?m="":m=minutes+"m ";
+    return h+m+seconds + 's';
 };

@@ -1,7 +1,7 @@
 <!DOCTYPE HTML> 
 <html>
     <head>
-        <title>Ormerod Control v0.60</title>
+        <title>Ormerod Control v0.62</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
         <!-- Bootstrap -->
@@ -269,6 +269,7 @@ Requires reset button on duet to restart">STOP!</button>
                                 </table>
                             </div>
                             <div class="col-md-12" id="quicks">
+                                <!-- Quick Commands -->
                                 <table class="table table-bordered">
                                     <tr><td>
                                 <p><strong>Quick Commands</strong></p>
@@ -284,8 +285,7 @@ Requires reset button on duet to restart">STOP!</button>
 
                         <div class="tab-pane" id="printview">
                             <br />
-                            <div class="col-md-1"></div>
-                            <div class="col-md-10">
+                            <div class="col-md-10 col-md-offset-1">
                                 <div class="progress text-center">
                                     <div id="printProgress" class="progress-bar" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" style="width: 0%">
                                         <span id="printProgressText" title=""></span>
@@ -293,8 +293,7 @@ Requires reset button on duet to restart">STOP!</button>
                                     <span id="printOffBar">0% complete, layer 0 of 0</span>
                                 </div>
                             </div>
-                            <div class="col-md-2"></div>
-                            <div class="col-md-8">
+                            <div class="col-md-8 col-md-offset-2">
                                 <table class="table table-bordered" id="layers">
                                     <tbody>
                                         <tr>
@@ -302,25 +301,46 @@ Requires reset button on duet to restart">STOP!</button>
                                                 <input type="text" id="objheight" class="form-control" placeholder="Object Height in mm" title="Enter Object Height in mm, to see progress %">
                                             </td>
                                             <td rowspan="3">
-                                                <div id="layerChart" style="width: 390px; height: 120px ">
-
-                                                </div>
+                                                <div id="layerChart" class="center-block"></div>
                                             </td> 
                                         </tr>
                                         <tr>
                                             <th>Print Duration</th>
                                             <th>Last Layer</th>
-
                                         </tr>
                                         <tr>
                                             <td><span id="elapsed">00:00:00</span></td>
                                             <td><span id="lastlayer">00:00:00</span></td>
-
                                         </tr>                                    
                                     </tbody>
-                                </table>                                
+                                </table>
+                                
+                                <table class="table table-bordered" id="finish">
+                                    <tbody>
+                                        <tr>
+                                            <th colspan="7" class="text-center">Estimated Print End Time</th>
+                                        </tr>
+                                        <tr>
+                                            <td>Based On</td>
+                                            <td>Last Layer</td>
+                                            <td>Avg. All Layers</td>
+                                            <td>Avg. Last 5 Layers</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Est. Time Left</td>
+                                            <td><span id="llTimeR">00:00:00</span></td>
+                                            <td><span id="avgAllR">00:00:00</span></td>
+                                            <td><span id="avg5R">00:00:00</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Est. End Time</td>
+                                            <td><span id="llTime">00:00:00</span></td>
+                                            <td><span id="avgAll">00:00:00</span></td>
+                                            <td><span id="avg5">00:00:00</span></td>
+                                        </tr>                                         
+                                    </tbody>
+                                </table>  
                             </div>
-
                         </div>
                         <div class="tab-pane" id="gcodefiles">
                             <br />
