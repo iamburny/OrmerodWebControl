@@ -1,7 +1,7 @@
 <!DOCTYPE HTML> 
 <html>
     <head>
-        <title>Ormerod Control v0.60</title>
+        <title>Ormerod Control v0.65</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
         <!-- Bootstrap -->
@@ -20,19 +20,18 @@
         <div id="wrap">      
             <nav class="navbar navbar-default" role="navigation">
                 <!-- Brand and toggle get grouped for better mobile display -->
-                <div class="navbar-header col-md-4">
-                    <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
-                        <span class="sr-only">Toggle navigation</span>
-                        <span class="icon-bar"></span>
-                        <span class="icon-bar"></span>
-                        <span class="icon-bar"></span>
-                    </button>
+                <div class="navbar-header">
                     <a class="navbar-brand" href="#"><strong>RepRapPro Ormerod</strong> <small>- <span id="hostLocation"></span></small></a>
                 </div>
-
                 <!-- Collect the nav links, forms, and other content for toggling -->
                 <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-                    <div class="col-md-5">
+                    <div class="col-md-1">
+                        <form class="navbar-form navbar-left">
+                        <button type="button" id="printGfile" class="btn btn-default disabled" title="Drop a G file here to Print it
+direct from the Web Interface">G Print Drop/Click</button>
+                        </form>
+                    </div>
+                    <div class="col-md-5 col-md-offset-1">
                         <form class="navbar-form navbar-left">
                             <div class="input-group">
                                 <div class="input-group-btn" id='sendG'>
@@ -269,6 +268,7 @@ Requires reset button on duet to restart">STOP!</button>
                                 </table>
                             </div>
                             <div class="col-md-12" id="quicks">
+                                <!-- Quick Commands -->
                                 <table class="table table-bordered">
                                     <tr><td>
                                 <p><strong>Quick Commands</strong></p>
@@ -284,8 +284,7 @@ Requires reset button on duet to restart">STOP!</button>
 
                         <div class="tab-pane" id="printview">
                             <br />
-                            <div class="col-md-1"></div>
-                            <div class="col-md-10">
+                            <div class="col-md-10 col-md-offset-1">
                                 <div class="progress text-center">
                                     <div id="printProgress" class="progress-bar" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" style="width: 0%">
                                         <span id="printProgressText" title=""></span>
@@ -293,34 +292,56 @@ Requires reset button on duet to restart">STOP!</button>
                                     <span id="printOffBar">0% complete, layer 0 of 0</span>
                                 </div>
                             </div>
-                            <div class="col-md-2"></div>
-                            <div class="col-md-8">
+                            <div class="col-md-8 col-md-offset-2">
                                 <table class="table table-bordered" id="layers">
                                     <tbody>
                                         <tr>
                                             <td colspan="2">
-                                                <input type="text" id="objheight" class="form-control" placeholder="Object Height in mm" title="Enter Object Height in mm, to see progress %">
+                                                <label>Object height in mm
+                                                    <input type="text" id="objheight" class="form-control" placeholder="mm" title="Enter Object Height in mm, to see progress %">
+                                                </label>
                                             </td>
                                             <td rowspan="3">
-                                                <div id="layerChart" style="width: 390px; height: 120px ">
-
-                                                </div>
+                                                <div id="layerChart" class="center-block"></div>
                                             </td> 
                                         </tr>
                                         <tr>
                                             <th>Print Duration</th>
                                             <th>Last Layer</th>
-
                                         </tr>
                                         <tr>
                                             <td><span id="elapsed">00:00:00</span></td>
                                             <td><span id="lastlayer">00:00:00</span></td>
-
                                         </tr>                                    
                                     </tbody>
-                                </table>                                
+                                </table>
+                                
+                                <table class="table table-bordered" id="finish">
+                                    <tbody>
+                                        <tr>
+                                            <th colspan="7" class="text-center">Estimated Print End Time</th>
+                                        </tr>
+                                        <tr>
+                                            <td>Based On</td>
+                                            <td>Last Layer</td>
+                                            <td>Avg. All Layers</td>
+                                            <td>Avg. Last 5 Layers</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Est. Time Left</td>
+                                            <td><span id="llTimeR">00:00:00</span></td>
+                                            <td><span id="avgAllR">00:00:00</span></td>
+                                            <td><span id="avg5R">00:00:00</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Est. End Time</td>
+                                            <td><span id="llTime">00:00:00</span></td>
+                                            <td><span id="avgAll">00:00:00</span></td>
+                                            <td><span id="avg5">00:00:00</span></td>
+                                        </tr>                                         
+                                    </tbody>
+                                </table>  
                             </div>
-
                         </div>
                         <div class="tab-pane" id="gcodefiles">
                             <br />
@@ -333,8 +354,8 @@ Requires reset button on duet to restart">STOP!</button>
 Upload it to the Duets SD card">SD Upload Drop</button>
                                         </div>
                                         <div class="col-md-3">
-                                                <button type="button" id="printGfile" class="btn btn-default btn-lg disabled" title="Drop a G file here to Print it
-direct from the Web Interface">Print G Drop</button>
+                                            <input type="file" id="printGselect" style="display:none">
+                                            <input type="file" id="uploadGselect" style="display:none">
                                         </div>  
                                         <div class="col-md-6">
                                         <span id="ulTitle">File Upload Status</span>
@@ -459,7 +480,7 @@ direct from the Web Interface">Print G Drop</button>
         <!-- Placed at the end of the document so the pages load faster -->
         <script src="//192.168.1.2/reprap/js/jquery-2.1.0.min.js"></script>
         <script src="//192.168.1.2/reprap/js/bootstrap.min.js"></script>
-        <script src="//192.168.1.2/reprap/js/jquery.cookie.min.js"></script>
+        <script src="//192.168.1.2/reprap/js/jquery.storageapi.min.js"></script>
         <script src="//192.168.1.2/reprap/js/jquery.flot.min.js"></script>
         <script src="//192.168.1.2/reprap/js/jquery.flot.navigate.js"></script>
         <script src="//192.168.1.2/reprap/js/jquery.filedrop.min.js"></script>        

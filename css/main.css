@@ -24,7 +24,7 @@ body {
 }
 
 .text-middle {padding-top: 15px }
+
+div#layerChart {width:510px; height: 120px}
 button#connect, button#stop, button#pause, button#reset { width:85px }
-button#uploadGfile {cursor: copy}
-button#printGfile {cursor: alias}
 div#gFileList, div#gFileList2, div#gFileList3 {vertical-align: top}
