@@ -1,7 +1,7 @@
 <!DOCTYPE HTML> 
 <html>
     <head>
-        <title>Ormerod Control v0.62</title>
+        <title>Ormerod Control v0.65</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
         <!-- Bootstrap -->
@@ -20,19 +20,18 @@
         <div id="wrap">      
             <nav class="navbar navbar-default" role="navigation">
                 <!-- Brand and toggle get grouped for better mobile display -->
-                <div class="navbar-header col-md-4">
-                    <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
-                        <span class="sr-only">Toggle navigation</span>
-                        <span class="icon-bar"></span>
-                        <span class="icon-bar"></span>
-                        <span class="icon-bar"></span>
-                    </button>
+                <div class="navbar-header">
                     <a class="navbar-brand" href="#"><strong>RepRapPro Ormerod</strong> <small>- <span id="hostLocation"></span></small></a>
                 </div>
-
                 <!-- Collect the nav links, forms, and other content for toggling -->
                 <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-                    <div class="col-md-5">
+                    <div class="col-md-1">
+                        <form class="navbar-form navbar-left">
+                        <button type="button" id="printGfile" class="btn btn-default disabled" title="Drop a G file here to Print it
+direct from the Web Interface">G Print Drop/Click</button>
+                        </form>
+                    </div>
+                    <div class="col-md-5 col-md-offset-1">
                         <form class="navbar-form navbar-left">
                             <div class="input-group">
                                 <div class="input-group-btn" id='sendG'>
@@ -298,7 +297,9 @@ Requires reset button on duet to restart">STOP!</button>
                                     <tbody>
                                         <tr>
                                             <td colspan="2">
-                                                <input type="text" id="objheight" class="form-control" placeholder="Object Height in mm" title="Enter Object Height in mm, to see progress %">
+                                                <label>Object height in mm
+                                                    <input type="text" id="objheight" class="form-control" placeholder="mm" title="Enter Object Height in mm, to see progress %">
+                                                </label>
                                             </td>
                                             <td rowspan="3">
                                                 <div id="layerChart" class="center-block"></div>
@@ -353,8 +354,8 @@ Requires reset button on duet to restart">STOP!</button>
 Upload it to the Duets SD card">SD Upload Drop</button>
                                         </div>
                                         <div class="col-md-3">
-                                                <button type="button" id="printGfile" class="btn btn-default btn-lg disabled" title="Drop a G file here to Print it
-direct from the Web Interface">Print G Drop</button>
+                                            <input type="file" id="printGselect" style="display:none">
+                                            <input type="file" id="uploadGselect" style="display:none">
                                         </div>  
                                         <div class="col-md-6">
                                         <span id="ulTitle">File Upload Status</span>
@@ -410,35 +411,49 @@ direct from the Web Interface">Print G Drop</button>
                         </div>
                         <div class="tab-pane" id="settings" style="overflow-y: scroll; height: 320px">
                             <br />
+                            <table class="table table-bordered col-md-10 col-md-offset-1" id="settingtbl">
+                                <tbody>
+                                    <tr>
+                                        <th class="text-center">Versions</th>
+                                        <th class="text-center">Parameters</th>
+                                        <th class="text-center">SD sys & www</th>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <div class="form-group">
+                                                <label class="control-label">Duet Firmware</label>
+                                                <p class="form-control-static" id="firmVer"></p>
+                                            </div>    
+                                        </td>
+                                        <td>
+                                            <form class="form-horizontal" role="form">
+                                                <div class="form-group">
+                                                    <label for="layerHeight" class="control-label">Layer height</label>
+                                                        <input type="text" class="form-control" id="layerHeight" title="(default:0.24)" value="0.24" />
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="pollDelay" class="control-label">UI refresh ms</label>
+                                                        <input type="text" class="form-control" id="pollDelay" title="Setting this to small can cause the Duet to crash (default:1000)" value="1000" />
+                                                </div>   
+                                                <div class="checkbox">
+                                                  <label>
+                                                    <input type="checkbox" id="halfz" /> Use Half Z movements
+                                                  </label>
+                                                </div>
+                                                <br />
+                                                <button type="button" id="saveSettings" class="btn btn-default">Apply & Save</button>
+                                                <button type="button" id="delSettings" class="btn btn-default" title="Reset all settings, and Custom Temps/Buttons">Reset All</button>
+                                            </form>                                        
+                                        </td>
+                                        
+                                    </tr>
+                                    <tr>
+                                        
+                                    </tr>
 
-                            <form class="form-horizontal col-md-10 col-md-offset-1" role="form">
-                                <div class="form-group">
-                                    <label class="col-sm-2 control-label">Duet Firmware</label>
-                                    <div class="col-sm-10">
-                                        <p class="form-control-static" id="firmVer"></p>
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <label for="layerHeight" class="col-sm-2 control-label">Layer height</label>
-                                    <div class="col-sm-2">
-                                        <input type="text" class="form-control" id="layerHeight" title="(default:0.24)" value="0.24" />
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <label for="pollDelay" class="col-sm-2 control-label">UI refresh ms</label>
-                                    <div class="col-sm-2">
-                                        <input type="text" class="form-control" id="pollDelay" title="Setting this to small can cause the Duet to crash (default:1000)" value="1000" />
-                                    </div>
-                                </div>   
-                                <div class="checkbox">
-                                  <label>
-                                    <input type="checkbox" id="halfz" /> Use Half Z movements
-                                  </label>
-                                </div>
-                                <br />
-                                <button type="button" id="saveSettings" class="btn btn-default">Apply & Save</button>
-                                <button type="button" id="delSettings" class="btn btn-default" title="Reset all settings, and Custom Temps/Buttons">Reset All</button>
-                            </form>
+                                </tbody>
+                            </table>
+
 
                             <div class="col-md-10 col-md-offset-1 btn-group-vertical" id="config">
                                 <br /><strong>Config.g file</strong><br />
@@ -480,7 +495,7 @@ direct from the Web Interface">Print G Drop</button>
         <!-- Placed at the end of the document so the pages load faster -->
         <script src="//code.jquery.com/jquery-2.1.0.min.js"></script>
         <script src="//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js"></script>
-        <script src="//cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.0/jquery.cookie.min.js"></script>         
+        <script src="//iamburny.github.io/OrmerodWebControl/js/jquery.storageapi.min.js"></script>         
         <script src="//cdnjs.cloudflare.com/ajax/libs/flot/0.8.1/jquery.flot.min.js"></script>
         <script src="//chrismbarr.github.io/FileDrop/jQuery.FileDrop.min.js"></script>
         <script src="//iamburny.github.io/OrmerodWebControl/js/reprap.js"></script> 
