@@ -5,6 +5,11 @@ Web Control Interface for the RepRapPro Ormerod
 
 reprap.remote.htm - javascript links point to external CDN's, NO editing required, just rename to reprap.htm and copy to "www" directory on your Ormerod's Duet SD card.
 
+Its strongly advised to update the firmware version on your Duet to 057n-dc42, found at the following link.
+
+https://github.com/dc42/RepRapFirmware/blob/duet/Release/RepRapFirmware-057n-dc42.bin
+
+
 ------------------------------------------------------------------------------------------------------------------------
 
 *** Below instruction are only for running the interface from a Local Webserver i.e. req's no internet connection ****
