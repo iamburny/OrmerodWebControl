@@ -293,6 +293,12 @@ $('#printGfile').on('click', function(){
 $('#uploadGfile').on('click', function(){
     $('input#uploadGselect').click();
 });
+$('#ulConfigG').on('click', function(){
+    $('input#ulConfigGselect').click();
+});
+$('#ulReprapHTM').on('click', function(){
+    $('input#ulReprapHTMselect').click();
+});
 $("input#printGselect:file").change(function (e){
     var file = this.files[0];
     readFile(this.files[0], function(e) {
@@ -304,6 +310,20 @@ $("input#uploadGselect:file").change(function (e){
     var file = this.files[0];
     readFile(this.files[0], function(e) {
         handleFileDrop(e.target.result, file.name, 'upload');
+    });
+    $(this).val('');
+});
+$("input#ulConfigGselect:file").change(function (e){
+    var file = this.files[0];
+    readFile(this.files[0], function(e) {
+        handleFileDrop(e.target.result, file.name, 'config');
+    });
+    $(this).val('');
+});
+$("input#ulReprapHTMselect:file").change(function (e){
+    var file = this.files[0];
+    readFile(this.files[0], function(e) {
+        handleFileDrop(e.target.result, file.name, 'htm');
     });
     $(this).val('');
 });
@@ -439,11 +459,15 @@ function handleFileDrop(data, fName, action) {
                 gFilename = fname + '.g';
                 $.askElle('gcode', "M559 P"+gFilename);
                 message("info", "Config file "+gFilename+" upload started");
+                uploadModal();
+                $('span#ulTitle').text("Uploading " + gFilename);
                 uploadLoop(action);
                 break;       
             case "htm":
                 gFilename = fname + '.htm';
                 $.askElle('gcode', "M560");
+                uploadModal();
+                $('span#ulTitle').text("Uploading " + gFilename);
                 message("info", "HTM file "+gFilename+" upload started");
                 maxUploadBuffer = 300;
                 maxUploadCommands = 2;
@@ -453,6 +477,7 @@ function handleFileDrop(data, fName, action) {
                 gFilename = fname + '.g';
                 $.askElle('gcode', "M28 " + gFilename);
                 message("info", "File Upload of " + gFilename + " started");
+                uploadModal();
                 $('span#ulTitle').text("Uploading " + gFilename);
                 uploadLoop(action);
                 break;
@@ -474,6 +499,16 @@ function handleFileDrop(data, fName, action) {
         modalMessage("File Error!", 'Not a valid file to print or upload', true);
         return false;
     }
+}
+
+function uploadModal() {
+    modalMessage('File Upload Status',"<span id='ulTitle'>File Upload Status</span>"+
+    "<div class='progress text-center'>"+
+    "<div id='ulProgress' class='progress-bar' role='progressbar' aria-valuenow='60' aria-valuemin='0' aria-valuemax='100' style='width: 0%'>"+
+    "<span id='ulProgressText' title=''></span>"+
+    "</div>"+
+    "<span id='ulOffBar'>0% Complete</span>"+
+    "</div>", false);
 }
 
 function readFile(file, onLoadCallback){
@@ -565,6 +600,7 @@ function uploadLoop(action) { //Web Printing/Uploading
                     $.askElle('gcode', "M29");
                     listGFiles();
                     $('span#ulTitle').text(gFilename + " Upload Complete in "+ duration);
+                    $('div#modal button#modalClose').removeClass('hidden');
                     message("info", gFilename + " Upload Complete in "+ duration);                
                     break;
                 case "config":
@@ -572,7 +608,8 @@ function uploadLoop(action) { //Web Printing/Uploading
                     $.askElle('gcode', "M29");
                     $.askElle("gcode", "M503"); //update config.g on setting view
                     message("info", gFilename + " Upload Complete in "+ duration);
-                    modalMessage("Finished Uploaded "+ gFilename, 'You must restart your duet for changes to take effect', true);
+                    $('span#ulTitle').text(gFilename + " Upload Complete in "+ duration);
+                    $('div#modal button#modalClose').removeClass('hidden');
                     maxUploadBuffer = 800;
                     maxUploadCommands = 20;
                     break;                    
