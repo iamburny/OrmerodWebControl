@@ -1,6 +1,6 @@
 /*! Reprap Ormerod Web Control | by Matt Burnett <matt@burny.co.uk>. | open license
  */
-var ver = 0.66; //App version
+var ver = 0.67; //App version
 var polling = false; 
 var webPrinting = false;
 var printing = false;
@@ -618,7 +618,11 @@ function uploadLoop(action) { //Web Printing/Uploading
         default:
             if (buffer == null || buffer < 100) {
                 resp = $.askElle('poll', '');
-                buffer = resp.buff;
+                if (typeof resp.buff != 'undefined') {
+                    buffer = resp.buff;
+                } else {
+                    buffer = 0;
+                }
             }
             if (buffer < 100) {
                 wait = 20;
@@ -639,7 +643,7 @@ function webSend(action) { //Web Printing/Uploading
     var line = "";
     var resp;
 	if (buffer > maxUploadBuffer) {
-		buffer = maxUploadBuffer;
+            buffer = maxUploadBuffer;
 	}
     if (gFile.length > 0) {
         while(gFile.length > 0 && i < maxUploadCommands && (line.length + gFile[0].length + 3) < buffer ) {
@@ -655,7 +659,13 @@ function webSend(action) { //Web Printing/Uploading
         } else {
              resp = $.askElle('gcode', line); //send chunk of gcodes, and get buffer response
         }
-        buffer = resp.buff;
+        
+        if (typeof resp.buff != 'undefined') {
+            buffer = resp.buff;
+        } else {
+            buffer = 0;
+        }
+        
         if (!webPrinting) setProgress(Math.floor((1 - (gFile.length / gFileLength)) * 100), "ul", 0,0);
     }
 }
