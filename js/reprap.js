@@ -618,7 +618,7 @@ function uploadLoop(action) { //Web Printing/Uploading
         default:
             if (buffer == null || buffer < 100) {
                 resp = $.askElle('poll', '');
-                if (typeof resp.buff != 'undefined') {
+                if (typeof resp != 'undefined') {
                     buffer = resp.buff;
                 } else {
                     buffer = 0;
@@ -660,7 +660,7 @@ function webSend(action) { //Web Printing/Uploading
              resp = $.askElle('gcode', line); //send chunk of gcodes, and get buffer response
         }
         
-        if (typeof resp.buff != 'undefined') {
+        if (typeof resp != 'undefined') {
             buffer = resp.buff;
         } else {
             buffer = 0;
