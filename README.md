@@ -3,7 +3,7 @@ OrmerodWebControl
 
 Web Control Interface for the RepRapPro Ormerod
 
-To install, download this repository as a zip file and extract it into the www directory on the SD card. Files reprap.remote.htm and README.md are not needed on the SD card and may be deleted if desired.
+To install, download this repository as a zip file and extract it into the www directory on the SD card. File README.md is not needed on the SD card and may be deleted if desired.
 
 As of version 68 this requires RepRapFirmware 057z-dc42 or later. You can find the firmware at:
 
