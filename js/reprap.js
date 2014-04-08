@@ -1,6 +1,6 @@
 /*! Reprap Ormerod Web Control | by Matt Burnett <matt@burny.co.uk>. | open license
  */
-var ver = 0.67; //App version
+var ver = 0.68; //App version
 var polling = false; 
 var webPrinting = false;
 var printing = false;
@@ -230,7 +230,6 @@ $('div#panicBtn button').on('click', function() {
             //panic stop
             window.stop();
             webPrinting = false;
-            polling = false;
             paused = false;
             break;
         case "reset":
@@ -262,7 +261,7 @@ $('div#panicBtn button').on('click', function() {
 });
 
 //g files
-$("div#gFileList, div#gFileList2, div#gFileList3, div#gFileList4").on('click', 'button#gFileLink', function() {
+$("div#gFileList, div#gFileList2, div#gFileList3").on('click', 'button#gFileLink', function() {
     var danger = this.className.indexOf("btn-danger");
     if (danger < 0) {
         var filename = $(this).text();
@@ -474,7 +473,7 @@ function handleFileDrop(data, fName, action) {
                 uploadLoop(action);
                 break;              
             case "upload":
-                gFilename = fname + '.g';
+                gFilename = fName;
                 $.askElle('gcode', "M28 " + gFilename);
                 message("info", "File Upload of " + gFilename + " started");
                 uploadModal();
@@ -674,15 +673,15 @@ function listGFiles() {
     var count = 0;
     var filesPerCol;
     var list = "gFileList";
-    $('div#gFileList, div#gFileList2, div#gFileList3, div#gFileList4').html("");
+    $('div#gFileList, div#gFileList2, div#gFileList3').html("");
     var result = $.askElle("files", "");
-    result.files.length>24?filesPerCol=Math.ceil(result.files.length/4):filesPerCol = 6;
+	result.files.sort(function (a, b) {
+		return a.toLowerCase().localeCompare(b.toLowerCase());
+	});
+    result.files.length>18?filesPerCol=Math.ceil(result.files.length/3):filesPerCol = 6;
     result.files.forEach(function(item) {
         count++;
         switch (true) {
-            case (count > (filesPerCol * 3)):
-                list = "gFileList4";
-                break;
             case (count > (filesPerCol * 2)):
                 list = "gFileList3";
                 break;
@@ -804,7 +803,7 @@ function homedWarning(x,y,z) {
 }
 
 function updatePage() {
-    var status = $.askElle("poll", "");
+    var status = $.askElle("status", "");
     if (!status || !polling) {
         $('button#connect').removeClass('btn-success').addClass('btn-danger');
         $('button#printing').removeClass('btn-warning').removeClass('btn-success').addClass('btn-danger').text("Disconnected");
@@ -826,8 +825,15 @@ function updatePage() {
             parseResponse(status.resp);
         }
         buffer = status.buff;
-        homedWarning(status.hx,status.hy,status.hz);
-        if (status.poll[0] === "P" || (webPrinting && !paused)) {
+        homedWarning(status.homed[0],status.homed[1],status.homed[2]);
+		if (status.status == "S") {
+			//stopped
+			printing = false;
+            $('button#printing').removeClass('btn-danger').removeClass('btn-success').addClass('btn-warning').text("Halted");
+            disableButtons('panic');
+            disableButtons("head");
+            disableButtons("gfilelist");
+		} else if (status.status === "P" || (webPrinting && !paused)) {
             //printing
             printing = true;
             objHeight = $('input#objheight').val();
@@ -835,7 +841,7 @@ function updatePage() {
             enableButtons('panic');
             disableButtons("head");
             disableButtons("gfilelist");
-            currentLayer = whichLayer(status.poll[5]);
+            currentLayer = whichLayer(status.pos[2]);
             if (isNumber(objHeight)) {
                 if(!layerHeight) layerHeight = storage.get('settings','layerHeight');
                 layerCount = Math.ceil(objHeight / layerHeight);
@@ -844,14 +850,14 @@ function updatePage() {
                 setProgress(0, 'print', 0, 0);
             }
             layers(currentLayer);
-        } else if (status.poll[0] === "I" && !paused ) {
+        } else if (status.status === "I" && !paused ) {
             //inactive, not printing
             printing = false;
             $('button#printing').removeClass('btn-danger').removeClass('btn-success').addClass('btn-warning').text("Ready :)");
             disableButtons("panic");
             enableButtons('head');
             enableButtons("gfilelist");
-        } else if (status.poll[0] === "I" && paused) {
+        } else if (status.status === "I" && paused) {
             //paused
             printing = true;
             $('button#printing').removeClass('btn-danger').removeClass('btn-success').addClass('btn-warning').text("Paused");
@@ -861,20 +867,20 @@ function updatePage() {
             //unknown state
             webPrinting = printing = paused = false;
             $('button#printing').removeClass('btn-warning').removeClass('btn-success').addClass('btn-danger').text("Error!");
-            message('danger', 'Unknown Poll State : ' + status.poll[0]);
+            message('danger', 'Unknown Poll State : ' + status.status);
         }
 
-        $('span#bedTemp').text(status.poll[1]);
-        $('span#headTemp').text(status.poll[2]);
-        $('span#Xpos').text(status.poll[3]);
-        $('span#Ypos').text(status.poll[4]);
-        $('span#Zpos').text(status.poll[5]);
-        $('span#Epos').text(status.poll[6]);
+        $('span#bedTemp').text(status.heaters[0]);
+        $('span#headTemp').text(status.heaters[1]);
+        $('span#Xpos').text(status.pos[0]);
+        $('span#Ypos').text(status.pos[1]);
+        $('span#Zpos').text(status.pos[2]);
+        $('span#Epos').text(status.pos[3]);
         $('span#probe').text(status.probe);
 
         //Temp chart stuff
-        chartData[0].push(parseFloat(status.poll[1]));
-        chartData[1].push(parseFloat(status.poll[2]));
+        chartData[0].push(parseFloat(status.heaters[0]));
+        chartData[1].push(parseFloat(status.heaters[1]));
         chart.setData(parseChartData());
         chart.draw();
     }
