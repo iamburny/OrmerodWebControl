@@ -534,10 +534,7 @@ function uploadFile(fromFile, toFile, printAfterUpload)
 		message("info", "File Upload of " + fromFile + " to " + toFile + " started");
 	}
 	gFilename = fromFile;
-	if (printAfterUpload == "")
-	{
-		uploadModal();
-	}
+	uploadModal();
 	$('span#ulTitle').text("Uploading " + fromFile);
 	uploadLoop("upload", printAfterUpload);
 }
@@ -648,6 +645,7 @@ function uploadLoop(action, fileToPrint) { //Web Printing/Uploading
                     listGFiles();
 					if (fileToPrint != "")
 					{
+						$('div#modal').modal('hide');
 						printSDfile(fileToPrint);
 					}
 					else
