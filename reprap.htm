@@ -1,14 +1,14 @@
 <!DOCTYPE HTML>
 <html>
 <head>
-<title>Ormerod Control v0.69</title>
+<title>Ormerod Control v0.70</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- Bootstrap -->
-<link href="/css/bootstrap.min.css" type="text/css" 
+<link href="css/bootstrap.min.css" type="text/css" 
 rel="stylesheet" />
-<link href="/css/main.css"  type="text/css" 
+<link href="css/main.css"  type="text/css" 
 rel="stylesheet" />
-<link href="/favicon.ico" type="image/x-icon" 
+<link href="favicon.ico" type="image/x-icon" 
 rel="icon" />        
 <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elmnts and media queries -->
 <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
@@ -30,14 +30,19 @@ rel="icon" />
 </div>
 <!-- Collect the nav links, forms, and other content for toggling -->
 <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-<div class="col-md-1">
+<div class="col-md-2">
 <form class="navbar-form navbar-left">
 <button type="button" id="printGfile" class="btn btn-default disabled"
-title="Drop a G file here to Print it
-direct from the Web Interface">G Print Drop/Click</button>
+title="Drop a Gcode file here to Print it directly">Direct Print Drop/Click</button>
 </form>
 </div>
-<div class="col-md-5 col-md-offset-1">
+<div class="col-md-2">
+<form class="navbar-form navbar-left">
+<button type="button" id="uploadPrintGfile" class="btn btn-default disabled"
+title="Drop a Gcode file here to upload it to a temporary file and then print it">Upload & Print Drop/Click</button>
+</form>
+</div>
+<div class="col-md-4">
 <form class="navbar-form navbar-left">
 <div class="input-group">
 <div class="input-group-btn" id='sendG'>
@@ -400,6 +405,7 @@ Upload it to the Duets SD card">SD Upload Drop</button>
 </div>
 <div class="col-md-3">
 <input type="file" id="printGselect" style="display:none">
+<input type="file" id="uploadPrintGselect" style="display:none">
 <input type="file" id="uploadGselect" style="display:none">
 <input type="file" id="ulConfigGselect" style="display:none">
 <input type="file" id="ulReprapHTMselect" style="display:none">
@@ -577,12 +583,12 @@ Save changes</button>
 <!-- Bootstrap core JavaScript
 ================================================== -->
 <!-- Placed at the end of the document so the pages load faster -->
-<script src="/js/jquery-2.1.0.min.js"></script>
-<script src="/js/bootstrap.min.js"></script>
-<script src="/js/jquery.storageapi.min.js"></script>
-<script src="/js/jquery.flot.min.js"></script>
-<script src="/js/jquery.flot.navigate.js"></script>
-<script src="/js/jquery.filedrop.min.js"></script>
-<script src="/js/reprap.js"></script>
+<script src="js/jquery-2.1.0.min.js"></script>
+<script src="js/bootstrap.min.js"></script>
+<script src="js/jquery.storageapi.min.js"></script>
+<script src="js/jquery.flot.min.js"></script>
+<script src="js/jquery.flot.navigate.js"></script>
+<script src="js/jquery.filedrop.min.js"></script>
+<script src="js/reprap.js"></script>
 </body>
 </html>
