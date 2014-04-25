@@ -1,14 +1,14 @@
 <!DOCTYPE HTML>
 <html>
 <head>
-<title>Ormerod Control v0.67</title>
+<title>Ormerod Control v0.70</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- Bootstrap -->
-<link href="//192.168.1.2/reprap/css/bootstrap.min.css" type="text/css" 
+<link href="css/bootstrap.min.css" type="text/css" 
 rel="stylesheet" />
-<link href="//192.168.1.2/reprap/css/main.css"  type="text/css" 
+<link href="css/main.css"  type="text/css" 
 rel="stylesheet" />
-<link href="//192.168.1.2/reprap/favicon.ico" type="image/x-icon" 
+<link href="favicon.ico" type="image/x-icon" 
 rel="icon" />        
 <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elmnts and media queries -->
 <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
@@ -30,14 +30,19 @@ rel="icon" />
 </div>
 <!-- Collect the nav links, forms, and other content for toggling -->
 <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-<div class="col-md-1">
+<div class="col-md-2">
 <form class="navbar-form navbar-left">
 <button type="button" id="printGfile" class="btn btn-default disabled"
-title="Drop a G file here to Print it
-direct from the Web Interface">G Print Drop/Click</button>
+title="Drop a Gcode file here to Print it directly">Direct Print Drop/Click</button>
 </form>
 </div>
-<div class="col-md-5 col-md-offset-1">
+<div class="col-md-2">
+<form class="navbar-form navbar-left">
+<button type="button" id="uploadPrintGfile" class="btn btn-default disabled"
+title="Drop a Gcode file here to upload it to a temporary file and then print it">Upload & Print Drop/Click</button>
+</form>
+</div>
+<div class="col-md-4">
 <form class="navbar-form navbar-left">
 <div class="input-group">
 <div class="input-group-btn" id='sendG'>
@@ -309,11 +314,11 @@ title='Disables stepper motors and allows axes to move freely'>Motors Off</a>
 <a href="#" role="button" class="btn btn-default disabled" 
 title="Set Absolute Z zero">G92 Z0</a>
 <a href="#" role="button" class="btn btn-default disabled" 
-title="Move X & Y axes to zero">G1 X0 Y0</a>
+title="Move X & Y axes to zero">G1 X0 Y0 F6000</a>
 <a href="#" role="button" class="btn btn-default disabled" 
 title="Move Z axis to zero">G1 Z0</a>
 <a href="#" role="button" class="btn btn-default disabled" 
-title="Move X & Y to Bed Centre">G1 X100 Y100</a>
+title="Move X & Y to Bed Centre">G1 X100 Y100 F6000</a>
 </td></tr>
 </table>
 </div>
@@ -400,6 +405,7 @@ Upload it to the Duets SD card">SD Upload Drop</button>
 </div>
 <div class="col-md-3">
 <input type="file" id="printGselect" style="display:none">
+<input type="file" id="uploadPrintGselect" style="display:none">
 <input type="file" id="uploadGselect" style="display:none">
 <input type="file" id="ulConfigGselect" style="display:none">
 <input type="file" id="ulReprapHTMselect" style="display:none">
@@ -416,14 +422,12 @@ Upload it to the Duets SD card">SD Upload Drop</button>
 <button type="button" class="btn btn-default pull-right" id="filereload">
 Refresh</button>
 </div>
-<div class="col-md-3 btn-group-vertical" id="gFileList">
+<div class="col-md-4 btn-group-vertical" id="gFileList">
 </div>
-<div class="col-md-3 btn-group-vertical" id="gFileList2">
+<div class="col-md-4 btn-group-vertical" id="gFileList2">
 </div>
-<div class="col-md-3 btn-group-vertical" id="gFileList3">
+<div class="col-md-4 btn-group-vertical" id="gFileList3">
 </div>      
-<div class="col-md-3 btn-group-vertical" id="gFileList4">
-</div> 
 </div>
 </div>
 </div>
@@ -579,12 +583,12 @@ Save changes</button>
 <!-- Bootstrap core JavaScript
 ================================================== -->
 <!-- Placed at the end of the document so the pages load faster -->
-<script src="//192.168.1.2/reprap/js/jquery-2.1.0.min.js"></script>
-<script src="//192.168.1.2/reprap/js/bootstrap.min.js"></script>
-<script src="//192.168.1.2/reprap/js/jquery.storageapi.min.js"></script>
-<script src="//192.168.1.2/reprap/js/jquery.flot.min.js"></script>
-<script src="//192.168.1.2/reprap/js/jquery.flot.navigate.js"></script>
-<script src="//192.168.1.2/reprap/js/jquery.filedrop.min.js"></script>  
-<script src="//192.168.1.2/reprap/js/reprap.js"></script> 
+<script src="js/jquery-2.1.0.min.js"></script>
+<script src="js/bootstrap.min.js"></script>
+<script src="js/jquery.storageapi.min.js"></script>
+<script src="js/jquery.flot.min.js"></script>
+<script src="js/jquery.flot.navigate.js"></script>
+<script src="js/jquery.filedrop.min.js"></script>
+<script src="js/reprap.js"></script>
 </body>
 </html>
