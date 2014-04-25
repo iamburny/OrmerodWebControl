@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html>
 <head>
-<title>Ormerod Control v0.70</title>
+<title>Ormerod Control v0.71</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- Bootstrap -->
 <link href="css/bootstrap.min.css" type="text/css" 
@@ -118,10 +118,8 @@ title='Pause before reset'>Reset</button>
 <td>
 <div class="input-group" id="headTemperature">
 <div class="input-group-btn">
-<button type="button" id='setHeadTemp' class="btn btn-default disabled">
-Set</button>
-<button type="button" class="btn btn-default dropdown-toggle disabled" 
-data-toggle="dropdown">
+<button type="button" id='setHeadTemp' class="btn btn-default disabled">Set</button>
+<button type="button" class="btn btn-default dropdown-toggle disabled" data-toggle="dropdown">
 <span class="caret"></span>
 </button>
 <ul class="dropdown-menu">
@@ -139,10 +137,8 @@ data-toggle="dropdown">
 <td>
 <div class="input-group" id="bedTemperature">
 <div class="input-group-btn">
-<button type="button" id='setBedTemp' class="btn btn-default disabled">
-Set</button>
-<button type="button" class="btn btn-default dropdown-toggle disabled" 
-data-toggle="dropdown">
+<button type="button" id='setBedTemp' class="btn btn-default disabled">Set</button>
+<button type="button" class="btn btn-default dropdown-toggle disabled" data-toggle="dropdown">
 <span class="caret"></span>
 </button>
 <ul class="dropdown-menu">
@@ -375,18 +371,20 @@ title="Enter Object Height in mm, to see progress %">
 <td>Last Layer</td>
 <td>Avg. All Layers</td>
 <td>Avg. Last 5 Layers</td>
+<td>Filament usage</td>
 </tr>
 <tr>
 <td>Est. Time Left</td>
 <td><span id="llTimeR">00:00:00</span></td>
 <td><span id="avgAllR">00:00:00</span></td>
 <td><span id="avg5R">00:00:00</span></td>
-</tr>
+<td><span id="filTimeR">00:00:00</span></td></tr>
 <tr>
 <td>Est. End Time</td>
 <td><span id="llTime">00:00:00</span></td>
 <td><span id="avgAll">00:00:00</span></td>
 <td><span id="avg5">00:00:00</span></td>
+<td><span id="filTime">00:00:00</span></td>
 </tr>                                         
 </tbody>
 </table>  
