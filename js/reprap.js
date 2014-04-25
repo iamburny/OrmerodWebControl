@@ -379,6 +379,10 @@ function loadSettings() {
     });
 }
 
+/**
+ * 
+ * @returns {undefined}
+ */
 function delSettings() {
     storage.removeAll();
     getCookies();
@@ -566,24 +570,32 @@ function readFile(file, onLoadCallback){
 }
 
 function findHeight() {
-    //find last G1 Z command from end backwards and return height in mm
+    //find last G1 Z command before M0(stop) from end backwards and return height in mm
     var height=0;
     var start=0;    
     var end=0;
+    var foundStop=0;
     var i=gFileLength - 1;
-    while (height===0 && i > 1) {
-        start = gFile[i].indexOf('G1 Z');
-        if (start >= 0) {
-            end = gFile[i].indexOf(' ', start+4);
-            if(end > start) { 
-                height = gFile[i].substr(start+4, end-(start+4));
-            } else {
-                height = gFile[i].substr(start+4);
-            }
-        }
-        i--;
+    while (foundStop===0 && i > 1) {
+       gFile[i].indexOf('M0')?foundStop=i:foundStop=0;
+       i--;
     }
-    return height;
+    if (foundStop > 0) {
+        while (height===0 && i > 1) {
+            start = gFile[i].indexOf('G1 Z');
+            if (start >= 0) {
+                end = gFile[i].indexOf(' ', start+4);
+                if(end > start) { 
+                    height = gFile[i].substr(start+4, end-(start+4));
+                } else {
+                    height = gFile[i].substr(start+4);
+                }
+            }
+            i--;
+        }
+        return height;
+    }
+    return false;
 }
 
 function getSlic3rSettings() {
