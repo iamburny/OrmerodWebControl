@@ -1,11 +1,11 @@
 /*! Reprap Ormerod Web Control | by Matt Burnett <matt@burny.co.uk>. | open license
  */
 var ver = 0.70; //App version
-var polling = false; 
+var polling = false;
 var webPrinting = false;
 var printing = false;
 var paused = false;
-var chart,chart2,ormerodIP,layerCount,currentLayer,objHeight,printStartTime,gFileLength,gFilename,buffer,timerStart,storage,layerHeight;
+var chart, chart2, ormerodIP, layerCount, currentLayer, objHeight, printStartTime, gFileLength, gFilename, buffer, timerStart, storage, layerHeight;
 var lastExaminedFile = "";
 var lastHeight;	// file that we last uploaded, and its total print height
 var maxUploadBuffer = 800;
@@ -29,28 +29,33 @@ jQuery.extend({
     askElle: function(reqType, code) {
         var result;
         var query = "";
-        switch(reqType) {
+        switch (reqType) {
             case 'gcode':
                 code = code.replace(/\n/g, '%0A').replace('+', '%2B').replace('-', '%2D').replace(/\s/g, '+');
-                query = "?gcode="+code;
+                query = "?gcode=" + code;
                 break;
             case 'htm':
-                query = "?gcode="+encodeURIComponent(code);
+                query = "?gcode=" + encodeURIComponent(code);
                 reqType = "gcode";
-                break;                
+                break;
         }
-        var url = '//' + ormerodIP + '/rr_'+reqType+query;
-        $.ajax(url, {async:false,dataType:"json",success:function(data){result = data;}});
+        var url = '//' + ormerodIP + '/rr_' + reqType + query;
+        $.ajax(url, {
+            async: false, 
+            dataType: "json", 
+            success: function(data) {
+                result = data;
+            }});
         return result;
     }
 });
 
 $(document).ready(function() {
-    storage=$.localStorage;
+    storage = $.localStorage;
     getCookies();
     loadSettings();
-    
-    moveVals(['X','Y','Z']);
+
+    moveVals(['X', 'Y', 'Z']);
 
     ormerodIP = location.host;
     $('#hostLocation').text(ormerodIP);
@@ -94,15 +99,15 @@ $(document).ready(function() {
 
     message('success', 'Page Load Complete');
     $('button#connect, button#printing').removeClass('disabled');
-    
+
     var htmVer = getHTMLver();
     $('p#htmVer').text(htmVer);
     $('p#jsVer').text(ver);
     if (htmVer < ver) {
         //pop message
-        modalMessage("Update! v"+ver+" is Available", "The version of reprap.htm on you Duet SD card is "+getHTMLver()+", the latest version is "+ver+", to ensure compatibility and with the latest javascript code, new features, and correct functionality it is highly recommended that you upgrade. The newest reprap.htm can be found at <a href='https://github.com/iamburny/OrmerodWebControl'>https://github.com/iamburny/OrmerodWebControl</a>", true);
+        modalMessage("Update! v" + ver + " is Available", "The version of reprap.htm on you Duet SD card is " + getHTMLver() + ", the latest version is " + ver + ", to ensure compatibility and with the latest javascript code, new features, and correct functionality it is highly recommended that you upgrade. The newest reprap.htm can be found at <a href='https://github.com/iamburny/OrmerodWebControl'>https://github.com/iamburny/OrmerodWebControl</a>", true);
     }
-    
+
 });
 
 $('#connect').on('click', function() {
@@ -111,7 +116,7 @@ $('#connect').on('click', function() {
         updatePage();
     } else {
         polling = true;
-        updatePage();        
+        updatePage();
         listGFiles();
         $.askElle("gcode", "M115"); //get firmware
         poll();
@@ -119,7 +124,7 @@ $('#connect').on('click', function() {
 });
 
 //temp controls
-$('div#bedTemperature button#setBedTemp').on('click', function() { 
+$('div#bedTemperature button#setBedTemp').on('click', function() {
     $.askElle('gcode', "M140 S" + $('input#bedTempInput').val());
 });
 $('div#bedTemperature').on('click', 'a#bedTempLink', function() {
@@ -127,7 +132,7 @@ $('div#bedTemperature').on('click', 'a#bedTempLink', function() {
     $.askElle('gcode', "M140 S" + $(this).text());
 });
 $('div#headTemperature button#setHeadTemp').on('click', function() {
-        $.askElle('gcode', "G10 P0 S" + $('input#headTempInput').val() + "\nT0");
+    $.askElle('gcode', "G10 P0 S" + $('input#headTempInput').val() + "\nT0");
 });
 $('div#headTemperature').on('click', 'a#headTempLink', function() {
     $('input#headTempInput').val($(this).text());
@@ -152,7 +157,7 @@ $('div#bedTemperature ul').on('click', 'a#addBedTemp', function() {
         temps.unshift(parseInt(tempVal));
         storage.set('temps.bed', temps);
         loadSettings();
-    }else{
+    } else {
         modalMessage("Error Adding Bed Temp!", "You must enter a Temperature to add it to the dropdown list", close);
     }
 });
@@ -163,7 +168,7 @@ $('div#headTemperature ul').on('click', 'a#addHeadTemp', function() {
         temps.unshift(parseInt(tempVal));
         storage.set('temps.head', temps);
         loadSettings();
-    }else{
+    } else {
         modalMessage("Error Adding Head Temp!", "You must enter a Temperature to add it to the dropdown list", close);
     }
 });
@@ -181,7 +186,7 @@ $('div#feed button#feed').on('click', function() {
 });
 
 //gcodes
-$('div#sendG button#txtinput, div#sendG a').on('click', function() {    
+$('div#sendG button#txtinput, div#sendG a').on('click', function() {
     var code;
     if (this.nodeName === 'BUTTON') {
         code = $('input#gInput').val().toUpperCase();
@@ -197,7 +202,7 @@ $('div#quicks').on('click', 'a', function() {
     } else {
         code = $(this).text();
     }
-   $.askElle('gcode', code);
+    $.askElle('gcode', code);
 });
 $('input#gInput').keydown(function(event) {
     if (event.which === 13) {
@@ -266,7 +271,7 @@ $('div#panicBtn button').on('click', function() {
 $("div#gFileList, div#gFileList2, div#gFileList3").on('click', 'button#gFileLink', function() {
     var danger = this.className.indexOf("btn-danger");
     if (danger < 0) {
-		printSDfile($(this).text());
+        printSDfile($(this).text());
     }
 }).on('mouseover', 'span#fileDelete', function() {
     $(this).parent().addClass('btn-danger');
@@ -280,53 +285,53 @@ $("div#gFileList, div#gFileList2, div#gFileList3").on('click', 'button#gFileLink
 });
 $("button#filereload").on('click', function() {
     $('span#ulTitle').text("File Upload Status");
-    setProgress(0, "ul", 0,0);
+    setProgress(0, "ul", 0, 0);
     listGFiles();
 });
-$('#printGfile').on('click', function(){
+$('#printGfile').on('click', function() {
     $('input#printGselect').click();
 });
-$('#uploadPrintGfile').on('click', function(){
+$('#uploadPrintGfile').on('click', function() {
     $('input#uploadPrintGselect').click();
 });
-$('#uploadGfile').on('click', function(){
+$('#uploadGfile').on('click', function() {
     $('input#uploadGselect').click();
 });
-$('#ulConfigG').on('click', function(){
+$('#ulConfigG').on('click', function() {
     $('input#ulConfigGselect').click();
 });
-$('#ulReprapHTM').on('click', function(){
+$('#ulReprapHTM').on('click', function() {
     $('input#ulReprapHTMselect').click();
 });
-$("input#printGselect:file").change(function (e){
+$("input#printGselect:file").change(function(e) {
     var file = this.files[0];
     readFile(this.files[0], function(e) {
         handleFileDrop(e.target.result, file.name, 'print');
     });
     $(this).val('');
 });
-$("input#uploadPrintGselect:file").change(function (e){
+$("input#uploadPrintGselect:file").change(function(e) {
     var file = this.files[0];
     readFile(this.files[0], function(e) {
         handleFileDrop(e.target.result, file.name, 'uploadandprint');
     });
     $(this).val('');
 });
-$("input#uploadGselect:file").change(function (e){
+$("input#uploadGselect:file").change(function(e) {
     var file = this.files[0];
     readFile(this.files[0], function(e) {
         handleFileDrop(e.target.result, file.name, 'upload');
     });
     $(this).val('');
 });
-$("input#ulConfigGselect:file").change(function (e){
+$("input#ulConfigGselect:file").change(function(e) {
     var file = this.files[0];
     readFile(this.files[0], function(e) {
         handleFileDrop(e.target.result, file.name, 'config');
     });
     $(this).val('');
 });
-$("input#ulReprapHTMselect:file").change(function (e){
+$("input#ulReprapHTMselect:file").change(function(e) {
     var file = this.files[0];
     readFile(this.files[0], function(e) {
         handleFileDrop(e.target.result, file.name, 'htm');
@@ -335,10 +340,10 @@ $("input#ulReprapHTMselect:file").change(function (e){
 });
 
 //Settings/cookie buttons
-$("div#settings button#saveSettings").on('click', function(){
+$("div#settings button#saveSettings").on('click', function() {
     saveSettings();
 });
-$("div#settings button#delSettings").on('click', function(){
+$("div#settings button#delSettings").on('click', function() {
     delSettings();
 });
 
@@ -349,40 +354,36 @@ $('a[data-toggle="tab"]').on('show.bs.tab', function(e) {
 });
 
 //Messages 
-$("div#messages button#clearLog").on('click', function(){
+$("div#messages button#clearLog").on('click', function() {
     message('clear', '');
 });
 
 function getCookies() {
     //if none use defaults here, probably move them elsewhere at some point!
     if (!storage.get('settings')) {
-        storage.set('settings', { pollDelay : 1000, layerHeight : 0.24, halfz : 0, noOK : 0 });
+        storage.set('settings', {pollDelay: 1000, layerHeight: 0.24, halfz: 0, noOK: 0});
     }
     if (!storage.get('temps')) {
-        storage.set('temps', {'bed' : [120,65,0], 'head' : [240,185,0]});
+        storage.set('temps', {'bed': [120, 65, 0], 'head': [240, 185, 0]});
     }
 }
 
 function loadSettings() {
     $('div#settings input#pollDelay').val(storage.get('settings', 'pollDelay').toString());
     $('div#settings input#layerHeight').val(storage.get('settings', 'layerHeight').toString().toString())
-    storage.get('settings', 'halfz')==1?$('div#settings input#halfz').prop('checked', true):$('div#settings input#halfz').prop('checked', false);
-    storage.get('settings', 'noOK')==1?$('div#messages input#noOK').prop('checked', true):$('div#messages input#noOK').prop('checked', false);
-    
+    storage.get('settings', 'halfz') == 1 ? $('div#settings input#halfz').prop('checked', true) : $('div#settings input#halfz').prop('checked', false);
+    storage.get('settings', 'noOK') == 1 ? $('div#messages input#noOK').prop('checked', true) : $('div#messages input#noOK').prop('checked', false);
+
     $('div#bedTemperature ul').html('<li class="divider"></li><li><a href="#" id="addBedTemp">Add Temp</a></li>');
     $('div#headTemperature ul').html('<li class="divider"></li><li><a href="#" id="addHeadTemp">Add Temp</a></li>');
-    storage.get('temps', 'bed').forEach(function(item){
-        $('div#bedTemperature ul').prepend('<li><a href="#" id="bedTempLink">'+item+'</a></li>');
+    storage.get('temps', 'bed').forEach(function(item) {
+        $('div#bedTemperature ul').prepend('<li><a href="#" id="bedTempLink">' + item + '</a></li>');
     });
-    storage.get('temps', 'head').forEach(function(item){
-        $('div#headTemperature ul').prepend('<li><a href="#" id="headTempLink">'+item+'</a></li>');
+    storage.get('temps', 'head').forEach(function(item) {
+        $('div#headTemperature ul').prepend('<li><a href="#" id="headTempLink">' + item + '</a></li>');
     });
 }
 
-/**
- * 
- * @returns {undefined}
- */
 function delSettings() {
     storage.removeAll();
     getCookies();
@@ -393,21 +394,21 @@ function saveSettings() {
     var zwas = storage.get('settings', 'halfz');
     storage.set('settings.pollDelay', parseInt($('div#settings input#pollDelay').val()));
     storage.set('settings.layerHeight', parseFloat($('div#settings input#layerHeight').val()));
-    $('div#settings input#halfz').is(':checked')?storage.set('settings.halfz','1'):storage.set('settings.halfz','0');  
-    $('div#settings input#noOK').is(':checked')?storage.set('settings.noOk','1'):storage.set('settings.noOK','0');
+    $('div#settings input#halfz').is(':checked') ? storage.set('settings.halfz', '1') : storage.set('settings.halfz', '0');
+    $('div#settings input#noOK').is(':checked') ? storage.set('settings.noOk', '1') : storage.set('settings.noOK', '0');
     if (zwas !== storage.get('settings', 'halfz')) {
         $('div#Zminus, div#Zplus').text('');
         moveVals(['Z']);
-    } 
+    }
 }
 
 function moveVals(axis) {
     axis.forEach(function(value) {
-        storage.get('settings','halfz')==1&&value=='Z'?i=50:i=100;
+        storage.get('settings', 'halfz') == 1 && value == 'Z' ? i = 50 : i = 100;
         var button = 0;
-        for (i; i >= 0.05; i=i/10) {
-            $('div#'+value+'minus').append('<button type="button" class="btn btn-default disabled">'+chevLeft+value+'-'+i.toString()+'</button>');
-            $('div#'+value+'plus').prepend('<button type="button" class="btn btn-default disabled">'+value+'+'+i.toString()+chevRight+'</button>');
+        for (i; i >= 0.05; i = i / 10) {
+            $('div#' + value + 'minus').append('<button type="button" class="btn btn-default disabled">' + chevLeft + value + '-' + i.toString() + '</button>');
+            $('div#' + value + 'plus').prepend('<button type="button" class="btn btn-default disabled">' + value + '+' + i.toString() + chevRight + '</button>');
             button++;
         }
     });
@@ -424,7 +425,7 @@ function fileDrop() {
         removeDataUriScheme: true,
         overClass: 'btn-success',
         onFileRead: function(file) {
-                handleFileDrop(file[0].data, file[0].name, "upload");
+            handleFileDrop(file[0].data, file[0].name, "upload");
         }
     });
 
@@ -433,7 +434,7 @@ function fileDrop() {
         removeDataUriScheme: true,
         overClass: 'btn-success',
         onFileRead: function(file) {
-                handleFileDrop(file[0].data, file[0].name, "uploadandprint");
+            handleFileDrop(file[0].data, file[0].name, "uploadandprint");
         }
     });
 
@@ -442,25 +443,25 @@ function fileDrop() {
         removeDataUriScheme: true,
         overClass: 'btn-success',
         onFileRead: function(file) {
-                handleFileDrop(file[0].data, file[0].name, "print");
+            handleFileDrop(file[0].data, file[0].name, "print");
         }
     });
-    
+
     $('#ulConfigG').fileDrop({
         decodeBase64: true,
         removeDataUriScheme: true,
         overClass: 'btn-success',
         onFileRead: function(file) {
-                handleFileDrop(file[0].data, file[0].name, "config");
+            handleFileDrop(file[0].data, file[0].name, "config");
         }
     });
-    
+
     $('#ulReprapHTM').fileDrop({
         decodeBase64: true,
         removeDataUriScheme: true,
         overClass: 'btn-success',
         onFileRead: function(file) {
-                handleFileDrop(file[0].data, file[0].name, "htm");
+            handleFileDrop(file[0].data, file[0].name, "htm");
         }
     });
 }
@@ -469,35 +470,37 @@ function handleFileDrop(data, fName, action) {
     var ext = getFileExt(fName).toLowerCase();
     var fname = getFileName(fName).toLowerCase();
     if (ext === "g" || ext === "gco" || ext === "gcode" || (action === "htm" && ext === "htm")) {
-        if (fname.length > 8) { fname = fname.substr(0, 8); }
+        if (fname.length > 8) {
+            fname = fname.substr(0, 8);
+        }
         gFile = data.split(/\r\n|\r|\n/g);
         gFileLength = gFile.length;
         timer();
         switch (action) {
             case "config":
                 gFilename = fname + '.g';
-                $.askElle('gcode', "M559 P"+gFilename);
-                message("info", "Config file "+gFilename+" upload started");
+                $.askElle('gcode', "M559 P" + gFilename);
+                message("info", "Config file " + gFilename + " upload started");
                 uploadModal();
                 $('span#ulTitle').text("Uploading " + gFilename);
                 uploadLoop(action, "");
-                break;       
+                break;
             case "htm":
                 gFilename = fname + '.htm';
                 $.askElle('gcode', "M560");
                 uploadModal();
                 $('span#ulTitle').text("Uploading " + gFilename);
-                message("info", "HTM file "+gFilename+" upload started");
+                message("info", "HTM file " + gFilename + " upload started");
                 maxUploadBuffer = 300;
                 maxUploadCommands = 2;
                 uploadLoop(action, "");
-                break;              
+                break;
             case "upload":
-				uploadFile(fName, fName, "");
+                uploadFile(fName, fName, "");
                 break;
             case "print":
                 gFilename = fName;
-				saveFileData("*");
+                saveFileData("*");
                 message("info", "Web Printing " + fName + " started");
                 $('span#gFileDisplay').html('<strong>Direct from Web printing ' + fName + '</strong>');
                 webPrinting = true;
@@ -505,10 +508,10 @@ function handleFileDrop(data, fName, action) {
                 $('#tabs a:eq(1)').tab('show'); //show print status after drop tab
                 uploadLoop(action, "");
                 break;
-			case "uploadandprint":
- 				var tempFilename = "tempWebPrint.gcode";
-				uploadFile(fName, tempFilename, tempFilename);
-				break;
+            case "uploadandprint":
+                var tempFilename = "tempWebPrint.gcode";
+                uploadFile(fName, tempFilename, tempFilename);
+                break;
         }
     } else {
         //alert('Not a G Code file');
@@ -519,118 +522,99 @@ function handleFileDrop(data, fName, action) {
 
 function saveFileData(toFile)
 {
-	var h = findHeight();
-	getSlic3rSettings();
-	lastExaminedFile = toFile;
-	lastHeight = h;
+    var h = findHeights();
+    lastExaminedFile = toFile;
+    lastHeight = h[0];
+    layerHeight = parseFloat(Math.round((h[2] - h[1]) * 100) / 100).toFixed(2); 
+    getSlic3rSettings();
 }
 
 function uploadFile(fromFile, toFile, printAfterUpload)
 {
-	saveFileData(toFile);
-	$.askElle('gcode', "M28 " + toFile);
-	if (fromFile == toFile)
-	{
-		message("info", "File Upload of " + fromFile + " started");
-	}
-	else
-	{
-		message("info", "File Upload of " + fromFile + " to " + toFile + " started");
-	}
-	gFilename = fromFile;
-	uploadModal();
-	$('span#ulTitle').text("Uploading " + fromFile);
-	uploadLoop("upload", printAfterUpload);
+    saveFileData(toFile);
+    $.askElle('gcode', "M28 " + toFile);
+    if (fromFile == toFile)
+    {
+        message("info", "File Upload of " + fromFile + " started");
+    }
+    else
+    {
+        message("info", "File Upload of " + fromFile + " to " + toFile + " started");
+    }
+    gFilename = fromFile;
+    uploadModal();
+    $('span#ulTitle').text("Uploading " + fromFile);
+    uploadLoop("upload", printAfterUpload);
 }
 
 function printSDfile(fName)
 {
-	$.askElle('gcode', "M23 " + fName + "\nM24");
-	message('success', "File [" + fName + "] sent to print");
-	$('span#gFileDisplay').html('<strong>Printing ' + fName + ' from Duet SD card</strong>');
-	resetLayerData(fName);
-	$('#tabs a:eq(1)').tab('show');
+    $.askElle('gcode', "M23 " + fName + "\nM24");
+    message('success', "File [" + fName + "] sent to print");
+    $('span#gFileDisplay').html('<strong>Printing ' + fName + ' from Duet SD card</strong>');
+    resetLayerData(fName);
+    $('#tabs a:eq(1)').tab('show');
 }
 
 function uploadModal() {
-    modalMessage('File Upload Status',"<span id='ulTitle'>File Upload Status</span>"+
-    "<div class='progress text-center'>"+
-    "<div id='ulProgress' class='progress-bar' role='progressbar' aria-valuenow='60' aria-valuemin='0' aria-valuemax='100' style='width: 0%'>"+
-    "<span id='ulProgressText' title=''></span>"+
-    "</div>"+
-    "<span id='ulOffBar'>0% Complete</span>"+
-    "</div>", false);
+    modalMessage('File Upload Status', "<span id='ulTitle'>File Upload Status</span>" +
+            "<div class='progress text-center'>" +
+            "<div id='ulProgress' class='progress-bar' role='progressbar' aria-valuenow='60' aria-valuemin='0' aria-valuemax='100' style='width: 0%'>" +
+            "<span id='ulProgressText' title=''></span>" +
+            "</div>" +
+            "<span id='ulOffBar'>0% Complete</span>" +
+            "</div>", false);
 }
 
-function readFile(file, onLoadCallback){
+function readFile(file, onLoadCallback) {
     //read file from click-choose type printing/upload
     var reader = new FileReader();
     reader.onload = onLoadCallback;
     reader.readAsText(file);
 }
 
-function findHeight() {
-    //find last G1 Z command before M0(stop) from end backwards and return height in mm
-    var height=0;
-    var start=0;    
-    var end=0;
-    var foundStop=0;
-    var i=gFileLength - 1;
-    while (foundStop===0 && i > 1) {
-       gFile[i].indexOf('M0')?foundStop=i:foundStop=0;
-       i--;
-    }
-    if (foundStop > 0) {
-        while (height===0 && i > 1) {
-            start = gFile[i].indexOf('G1 Z');
-            if (start >= 0) {
-                end = gFile[i].indexOf(' ', start+4);
-                if(end > start) { 
-                    height = gFile[i].substr(start+4, end-(start+4));
-                } else {
-                    height = gFile[i].substr(start+4);
-                }
+function findHeights() {
+    var height = [];
+    var end = 0;
+    var i = gFileLength - 1;
+    //work backwords from end of the file
+    while (height.length < 3 && i > 1) {
+        //get last 3 G1 Z commands
+        if (gFile[i].substr(0,4) == 'G1 Z') {
+            end = gFile[i].indexOf(' ', 4);
+            if (end > 0) {
+                height.push(gFile[i].substr(4, end - 4));
+            } else {
+                height.push(gFile[i].substr(4));
             }
-            i--;
+            end = 0;
         }
-        return height;
+         i--;
     }
-    return false;
+    return height;
 }
 
 function getSlic3rSettings() {
     $('table#slic3r tbody').html(''); //slic3r setting <table>
-//    switch (true) {
-//        case gFile[0].indexOf('Slic3r') >= 0:
-//            var values = {'Sliced With': 'generated by ', 'Layer Height': 'layer_height = ', 'Extrusion Multiplier' : 'extrusion_multiplier = ','Perimeters': 'perimeters = '};
-//            break;
-//        case gFile[0].indexOf('Cura') >= 0:
-//            var values = {'Sliced With': 'Generated with ', 'Cura Settings': 'Basic settings: ', 'Layer Count' : 'Layer count: '};
-//            break;
-//    }
-    var values = {'Sliced With': 'generated by ', 'Layer Height': 'layer_height = ', 'Extrusion Multiplier' : 'extrusion_multiplier = ','Perimeters': 'perimeters = ', 'Filament Used' : 'filament used = '};
-    for(var i = 0; i <= 20 && i < gFile.length; i++){
-        for(var key in values){
+    var values = {'Sliced With': 'generated by ', 'Layer Height': 'layer_height = ', 'Extrusion Multiplier': 'extrusion_multiplier = ', 'Perimeters': 'perimeters = ', 'Filament Used': 'filament used = '};
+    for (var i = 0; i <= 20 && i < gFile.length; i++) {
+        for (var key in values) {
             var value = values[key];
             var linePos = gFile[i].indexOf(value);
-			var data;
-            if(linePos > 0) {
+            var data;
+            if (linePos > 0) {
                 switch (true) {
                     case key == 'Sliced With':
-                        data = gFile[i].substr(linePos+value.length, gFile[i].indexOf(' on') - (linePos+value.length));
+                        data = gFile[i].substr(linePos + value.length, gFile[i].indexOf(' on') - (linePos + value.length));
                         break;
                     case key == 'Layer Height':
-                        data = gFile[i].substr(linePos+value.length);
-                        layerHeight = data;
+                        data = layerHeight;
                         break;
-//                    case key == 'Cura Settings':
-//                        //Cura Settings
-//                        break;
                     default:
-                        data = gFile[i].substr(linePos+value.length);
+                        data = gFile[i].substr(linePos + value.length);
                         break;
                 }
-                $('table#slic3r tbody').append('<tr><th>'+key+'</th></tr><tr><td>'+data+'</td></tr>');
+                $('table#slic3r tbody').append('<tr><th>' + key + '</th></tr><tr><td>' + data + '</td></tr>');
             }
         }
     }
@@ -642,41 +626,41 @@ function uploadLoop(action, fileToPrint) { //Web Printing/Uploading
     switch (true) {
         case webPrinting == false && action === 'print':
             //Break Loop stop sending
-           gFile = [];
-		   // fall through...
+            gFile = [];
+            // fall through...
         case gFile.length === 0:
             //Finished with Dropped file, stop loop, end tasks
             var duration = (timer() - timerStart).toHHMMSS();
             switch (action) {
                 case "print":
                     webPrinting = false;
-                    message("success", "Finished web printing " + gFilename + " in " + duration);                
+                    message("success", "Finished web printing " + gFilename + " in " + duration);
                     break;
                 case "upload":
                     $.askElle('gcode', "M29");
                     listGFiles();
-					if (fileToPrint != "")
-					{
-						$('div#modal').modal('hide');
-						printSDfile(fileToPrint);
-					}
-					else
-					{
-						$('span#ulTitle').text(gFilename + " Upload Complete in " + duration);
-						$('div#modal button#modalClose').removeClass('hidden');
-						message("info", gFilename + " Upload Complete in " + duration);     
-					}
+                    if (fileToPrint != "")
+                    {
+                        $('div#modal').modal('hide');
+                        printSDfile(fileToPrint);
+                    }
+                    else
+                    {
+                        $('span#ulTitle').text(gFilename + " Upload Complete in " + duration);
+                        $('div#modal button#modalClose').removeClass('hidden');
+                        message("info", gFilename + " Upload Complete in " + duration);
+                    }
                     break;
                 case "config":
-                case "htm":    
+                case "htm":
                     $.askElle('gcode', "M29");
                     $.askElle("gcode", "M503"); //update config.g on setting view
-                    message("info", gFilename + " Upload Complete in "+ duration);
-                    $('span#ulTitle').text(gFilename + " Upload Complete in "+ duration);
+                    message("info", gFilename + " Upload Complete in " + duration);
+                    $('span#ulTitle').text(gFilename + " Upload Complete in " + duration);
                     $('div#modal button#modalClose').removeClass('hidden');
                     maxUploadBuffer = 800;
                     maxUploadCommands = 20;
-                    break;                    
+                    break;
             }
             break;
         default:
@@ -690,7 +674,7 @@ function uploadLoop(action, fileToPrint) { //Web Printing/Uploading
             }
             if (buffer < 100) {
                 wait = 20;
-            }else if (paused === true) {
+            } else if (paused === true) {
                 wait = 2000;
             } else {
                 webSend(action);
@@ -703,14 +687,14 @@ function uploadLoop(action, fileToPrint) { //Web Printing/Uploading
 }
 
 function webSend(action) { //Web Printing/Uploading
-    var i=0;
+    var i = 0;
     var line = "";
     var resp;
-	if (buffer > maxUploadBuffer) {
-            buffer = maxUploadBuffer;
-	}
+    if (buffer > maxUploadBuffer) {
+        buffer = maxUploadBuffer;
+    }
     if (gFile.length > 0) {
-        while(gFile.length > 0 && i < maxUploadCommands && (line.length + gFile[0].length + 3) < buffer ) {
+        while (gFile.length > 0 && i < maxUploadCommands && (line.length + gFile[0].length + 3) < buffer) {
             if (i != 0) {
                 line += "\n"; //"%0A";
             }
@@ -718,19 +702,20 @@ function webSend(action) { //Web Printing/Uploading
             gFile.shift();
             i++;
         }
-        if (action==="htm") {
-             resp = $.askElle('htm', line); //send chunk of gcodes, and get buffer response
+        if (action === "htm") {
+            resp = $.askElle('htm', line); //send chunk of gcodes, and get buffer response
         } else {
-             resp = $.askElle('gcode', line); //send chunk of gcodes, and get buffer response
+            resp = $.askElle('gcode', line); //send chunk of gcodes, and get buffer response
         }
-        
+
         if (typeof resp != 'undefined') {
             buffer = resp.buff;
         } else {
             buffer = 0;
         }
-        
-        if (!webPrinting) setProgress(Math.floor((1 - (gFile.length / gFileLength)) * 100), "ul", 0,0);
+
+        if (!webPrinting)
+            setProgress(Math.floor((1 - (gFile.length / gFileLength)) * 100), "ul", 0, 0);
     }
 }
 
@@ -740,10 +725,10 @@ function listGFiles() {
     var list = "gFileList";
     $('div#gFileList, div#gFileList2, div#gFileList3').html("");
     var result = $.askElle("files", "");
-	result.files.sort(function (a, b) {
-		return a.toLowerCase().localeCompare(b.toLowerCase());
-	});
-    result.files.length>18?filesPerCol=Math.ceil(result.files.length/3):filesPerCol = 6;
+    result.files.sort(function(a, b) {
+        return a.toLowerCase().localeCompare(b.toLowerCase());
+    });
+    result.files.length > 18 ? filesPerCol = Math.ceil(result.files.length / 3) : filesPerCol = 6;
     result.files.forEach(function(item) {
         count++;
         switch (true) {
@@ -754,9 +739,9 @@ function listGFiles() {
                 list = "gFileList2";
                 break;
         }
-        if(jQuery.inArray(item, macroGs) >= 0) {
-            if (!$('div#quicks a[itemprop="M23 '+item+'%0AM24"]').text()) {
-                $('div#quicks td:eq(0)').append('<a href="#" role="button" class="btn btn-default disabled" itemprop="M23 '+item+'%0AM24" id="quickgfile">'+item+'</a>');
+        if (jQuery.inArray(item, macroGs) >= 0) {
+            if (!$('div#quicks a[itemprop="M23 ' + item + '%0AM24"]').text()) {
+                $('div#quicks td:eq(0)').append('<a href="#" role="button" class="btn btn-default disabled" itemprop="M23 ' + item + '%0AM24" id="quickgfile">' + item + '</a>');
             }
         }
         $('div#' + list).append('<button type="button" class="btn btn-default" id="gFileLink"><span class="pull-left">' + item + '</span><span id="fileDelete" class="glyphicon glyphicon-trash pull-right"></span></button>');
@@ -802,15 +787,15 @@ function enableButtons(which) {
             break;
         case "sendG":
             $('div#sendG button, div#sendG a, input#gInput').removeClass('disabled');
-            break;            
+            break;
     }
 }
 
 function modalMessage(title, text, close) {
     $('div#modal h4.modal-title').text(title);
     $('div#modal div.modal-body').html(text);
-    close?$('div#modal button#modalClose').removeClass('hidden'):$('div#modal button#modalClose').addClass('hidden');
-    $('div#modal').modal({show:true});
+    close ? $('div#modal button#modalClose').removeClass('hidden') : $('div#modal button#modalClose').addClass('hidden');
+    $('div#modal').modal({show: true});
 }
 
 function message(type, text) {
@@ -826,10 +811,10 @@ function message(type, text) {
 function parseResponse(res) {
     switch (true) {
         case res.indexOf('Debugging enabled') >= 0:
-            message('info', '<strong>M111</strong><br />' + res.replace(/\n/g, "<br />"));    
+            message('info', '<strong>M111</strong><br />' + res.replace(/\n/g, "<br />"));
             break;
         case res.indexOf('Firmware') >= 0:
-            var strt = res.indexOf("SION:") +5 ;
+            var strt = res.indexOf("SION:") + 5;
             var end = res.indexOf(" ELEC");
             if ($('p#firmVer').text() === "") {
                 $('p#firmVer').text(res.substr(strt, end - strt));
@@ -838,7 +823,7 @@ function parseResponse(res) {
             $.askElle("gcode", "M105");
             break;
         case res.indexOf('M550') >= 0:
-            message('info', '<strong>M503</strong><br />' + res.replace(/\n/g, "<br />")); 
+            message('info', '<strong>M503</strong><br />' + res.replace(/\n/g, "<br />"));
             $('div#config').html("<span class='col-md-9'><br/><strong>Config.g File Contents:</strong></span>");
             res.split(/\n/g).forEach(function(item) {
                 $('div#config').append("<span class='alert-info col-md-9'>" + item + "</span><br />");
@@ -856,15 +841,15 @@ function parseResponse(res) {
     }
 }
 
-function homedWarning(x,y,z) {
-    if ((x+y+z) < 3) {
+function homedWarning(x, y, z) {
+    if ((x + y + z) < 3) {
         $('span#warning').text('*some axes are not homed');
-    } else {    
+    } else {
         $('span#warning').text('');
     }
-    x===0?$('button#homeX').removeClass('btn-primary').addClass('btn-warning'):$('button#homeX').removeClass('btn-warning').addClass('btn-primary');
-    y===0?$('button#homeY').removeClass('btn-primary').addClass('btn-warning'):$('button#homeY').removeClass('btn-warning').addClass('btn-primary');
-    z===0?$('button#homeZ').removeClass('btn-primary').addClass('btn-warning'):$('button#homeZ').removeClass('btn-warning').addClass('btn-primary');
+    x === 0 ? $('button#homeX').removeClass('btn-primary').addClass('btn-warning') : $('button#homeX').removeClass('btn-warning').addClass('btn-primary');
+    y === 0 ? $('button#homeY').removeClass('btn-primary').addClass('btn-warning') : $('button#homeY').removeClass('btn-warning').addClass('btn-primary');
+    z === 0 ? $('button#homeZ').removeClass('btn-primary').addClass('btn-warning') : $('button#homeZ').removeClass('btn-warning').addClass('btn-primary');
 }
 
 function updatePage() {
@@ -890,15 +875,15 @@ function updatePage() {
             parseResponse(status.resp);
         }
         buffer = status.buff;
-        homedWarning(status.homed[0],status.homed[1],status.homed[2]);
-		if (status.status == "S") {
-			//stopped
-			printing = false;
+        homedWarning(status.homed[0], status.homed[1], status.homed[2]);
+        if (status.status == "S") {
+            //stopped
+            printing = false;
             $('button#printing').removeClass('btn-danger').removeClass('btn-success').addClass('btn-warning').text("Halted");
             disableButtons('panic');
             disableButtons("head");
             disableButtons("gfilelist");
-		} else if (status.status === "P" || (webPrinting && !paused)) {
+        } else if (status.status === "P" || (webPrinting && !paused)) {
             //printing
             printing = true;
             objHeight = $('input#objheight').val();
@@ -908,14 +893,15 @@ function updatePage() {
             disableButtons("gfilelist");
             currentLayer = whichLayer(status.pos[2]);
             if (isNumber(objHeight)) {
-                if(!layerHeight) layerHeight = storage.get('settings','layerHeight');
+                if (!layerHeight)
+                    layerHeight = storage.get('settings', 'layerHeight');
                 layerCount = Math.ceil(objHeight / layerHeight);
                 setProgress(Math.floor((currentLayer / layerCount) * 100), 'print', currentLayer, layerCount);
             } else {
                 setProgress(0, 'print', 0, 0);
             }
             layers(currentLayer);
-        } else if (status.status === "I" && !paused ) {
+        } else if (status.status === "I" && !paused) {
             //inactive, not printing
             printing = false;
             $('button#printing').removeClass('btn-danger').removeClass('btn-success').addClass('btn-warning').text("Ready :)");
@@ -962,35 +948,36 @@ function estEndTime() {
     if (layerData.length > firstLayer) {
         var lastLayer = layerData[layerData.length - 1] - layerData[layerData.length - 2];
         var llTimeR = new Date(utime + (lastLayer * layerLeft));
-        $('span#llTimeR').text((lastLayer * layerLeft).toHHMMSS()); 
-        $('span#llTime').text(llTimeR.toLocaleTimeString()); 
+        $('span#llTimeR').text((lastLayer * layerLeft).toHHMMSS());
+        $('span#llTime').text(llTimeR.toLocaleTimeString());
 
         //average all layers 
-        var t=0;
-        for (var i = firstLayer; i <= (layerData.length-1) ;i++ ) {
-            t += layerData[i] - layerData[i-1];
+        var t = 0;
+        for (var i = firstLayer; i <= (layerData.length - 1); i++) {
+            t += layerData[i] - layerData[i - 1];
         }
-        var avgAll = t / layerData.length-firstLayer;
+        var avgAll = t / layerData.length - firstLayer;
         var avgAllR = new Date(utime + (avgAll * layerLeft));
-        $('span#avgAllR').text((avgAll * layerLeft).toHHMMSS()); 
-        $('span#avgAll').text(avgAllR.toLocaleTimeString()); 
-        
+        $('span#avgAllR').text((avgAll * layerLeft).toHHMMSS());
+        $('span#avgAll').text(avgAllR.toLocaleTimeString());
+
         if (layerData.length > (5 + firstLayer)) {
             //avg last 5 layers
-            t=0;
-            for (var i = firstLayer; i <= (4+firstLayer) ;i++ ) {
-                t += layerData[layerData.length - i] - layerData[layerData.length - i-1] ;
+            t = 0;
+            for (var i = firstLayer; i <= (4 + firstLayer); i++) {
+                t += layerData[layerData.length - i] - layerData[layerData.length - i - 1];
             }
             var avg5 = t / 5;
             var avg5R = new Date(utime + (avg5 * layerLeft));
-            $('span#avg5R').text((avg5 * layerLeft).toHHMMSS()); 
-            $('span#avg5').text(avg5R.toLocaleTimeString()); 
+            $('span#avg5R').text((avg5 * layerLeft).toHHMMSS());
+            $('span#avg5').text(avg5R.toLocaleTimeString());
         }
     }
 }
 
 function whichLayer(currZ) {
-    if(!layerHeight) layerHeight = storage.get('settings','layerHeight');
+    if (!layerHeight)
+        layerHeight = storage.get('settings', 'layerHeight');
     var n = Math.round(currZ / layerHeight);
     if (n === currentLayer + 1 && currentLayer) {
         layerChange();
@@ -1000,10 +987,10 @@ function whichLayer(currZ) {
 
 function resetLayerData(fName) {
     //clear layer count,times and chart
-	if (fName == lastExaminedFile && isNumber(lastHeight))
-	{
-		$('input#objheight').val(lastHeight.toString());
-	}
+    if (fName == lastExaminedFile && isNumber(lastHeight))
+    {
+        $('input#objheight').val(lastHeight.toString());
+    }
     layerData = [];
     printStartTime = null;
     setProgress(0, 'print', 0, 0);
@@ -1050,13 +1037,13 @@ function zeroPrefix(num) {
 }
 
 function setProgress(percent, bar, layer, layers) {
-    var barText = $('span#'+bar+'ProgressText');
-    var offText = $('span#'+bar+'OffBar');
+    var barText = $('span#' + bar + 'ProgressText');
+    var offText = $('span#' + bar + 'OffBar');
     var ptext = percent + "% Complete";
-    if(bar == 'print') {
+    if (bar == 'print') {
         ptext += ", Layer " + layer + " of " + layers;
     }
-    
+
     switch (true) {
         case percent <= 40 && percent > 0:
             barText.text('').attr('title', '');
@@ -1071,7 +1058,7 @@ function setProgress(percent, bar, layer, layers) {
             offText.text('0% complete, layer 0 of 0');
             break;
     }
-    $('div#'+bar+'Progress').css("width", percent + "%");
+    $('div#' + bar + 'Progress').css("width", percent + "%");
 }
 
 function parseLayerData() {
@@ -1121,19 +1108,19 @@ function poll() {
 }
 
 function getHTMLver() {
-    return document.title.substr(document.title.indexOf("v")+1);
+    return document.title.substr(document.title.indexOf("v") + 1);
 }
 
 Number.prototype.toHHMMSS = function() {
-    var h,m;
+    var h, m;
     var sec_num = Math.floor(this / 1000); // don't forget the second param
     var hours = Math.floor(sec_num / 3600);
     var minutes = Math.floor((sec_num - (hours * 3600)) / 60);
     var seconds = sec_num - (hours * 3600) - (minutes * 60);
-    hours < 10?hours="0"+hours:false;
-    minutes < 10?minutes="0"+minutes:false;
-    seconds < 10?seconds="0"+seconds:false;
-    hours=='00'?h="":h=hours+"h ";
-    minutes=='00'?m="":m=minutes+"m ";
-    return h+m+seconds + 's';
+    hours < 10 ? hours = "0" + hours : false;
+    minutes < 10 ? minutes = "0" + minutes : false;
+    seconds < 10 ? seconds = "0" + seconds : false;
+    hours == '00' ? h = "" : h = hours + "h ";
+    minutes == '00' ? m = "" : m = minutes + "m ";
+    return h + m + seconds + 's';
 };
