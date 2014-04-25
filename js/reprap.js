@@ -525,7 +525,7 @@ function saveFileData(toFile)
     var h = findHeights();
     lastExaminedFile = toFile;
     lastHeight = h[0];
-    layerHeight = parseFloat(Math.round((h[2] - h[1]) * 100) / 100).toFixed(2); 
+    layerHeight = parseFloat(Math.round((h[1] - h[2]) * 100) / 100).toFixed(2); 
     getSlic3rSettings();
 }
 
