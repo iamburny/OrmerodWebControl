@@ -1,6 +1,6 @@
 /*! Reprap Ormerod Web Control | by Matt Burnett <matt@burny.co.uk>. | open license
  */
-var ver = 0.72; //App version
+var ver = 0.73; //App version
 var polling = false; 
 var webPrinting = false;
 var printing = false;
@@ -496,7 +496,7 @@ function handleFileDrop(data, fName, action) {
             case "print":
                 gFilename = fName;
 				getSlic3rSettings();
-				var h = findHeight;
+				var h = findHeight();
                 message("info", "Web Printing " + fName + " started");
                 $('span#gFileDisplay').html('<strong>Direct from Web printing ' + fName + '</strong>');
                 webPrinting = true;
@@ -580,7 +580,7 @@ function findHeight() {
     while (height===0 && i > 1) {
         start = gFile[i].indexOf('G1 Z');
         if (start >= 0) {
-			var comment = gfile[i].indexof(';');
+			var comment = gFile[i].indexOf(';');
 			if (comment < 0 || comment > start) {
 				end = gFile[i].indexOf(' ', start+4);
 				if(end > start) { 
