@@ -6,8 +6,6 @@ var webPrinting = false;
 var printing = false;
 var paused = false;
 var chart, chart2, ormerodIP, layerCount, currentLayer, objHeight, printStartTime, gFileLength, gFilename, buffer, timerStart, storage, layerHeight;
-var lastExaminedFile = "";
-var lastHeight;	// file that we last uploaded, and its total print height
 var maxUploadBuffer = 800;
 var maxUploadCommands = 20;
 var messageSeqId = 0;
@@ -291,52 +289,22 @@ $("button#filereload").on('click', function() {
 $('#printGfile').on('click', function() {
     $('input#printGselect').click();
 });
-$('#uploadPrintGfile').on('click', function() {
-    $('input#uploadPrintGselect').click();
+$('#uploadFile').on('click', function() {
+    $('input#uploadSelect').click();
 });
-$('#uploadGfile').on('click', function() {
-    $('input#uploadGselect').click();
-});
-$('#ulConfigG').on('click', function() {
-    $('input#ulConfigGselect').click();
-});
-$('#ulReprapHTM').on('click', function() {
-    $('input#ulReprapHTMselect').click();
-});
-$("input#printGselect:file").change(function(e) {
+$("input#uploadSelect:file").change(function(e) {
     var file = this.files[0];
     readFile(this.files[0], function(e) {
-        handleFileDrop(e.target.result, file.name, 'print');
+        handleFileDrop(e.target.result, file.name);
     });
     $(this).val('');
 });
-$("input#uploadPrintGselect:file").change(function(e) {
-    var file = this.files[0];
-    readFile(this.files[0], function(e) {
-        handleFileDrop(e.target.result, file.name, 'uploadandprint');
-    });
-    $(this).val('');
-});
-$("input#uploadGselect:file").change(function(e) {
-    var file = this.files[0];
-    readFile(this.files[0], function(e) {
-        handleFileDrop(e.target.result, file.name, 'upload');
-    });
-    $(this).val('');
-});
-$("input#ulConfigGselect:file").change(function(e) {
-    var file = this.files[0];
-    readFile(this.files[0], function(e) {
-        handleFileDrop(e.target.result, file.name, 'config');
-    });
-    $(this).val('');
-});
-$("input#ulReprapHTMselect:file").change(function(e) {
-    var file = this.files[0];
-    readFile(this.files[0], function(e) {
-        handleFileDrop(e.target.result, file.name, 'htm');
-    });
-    $(this).val('');
+$("div#modal").on('click', 'button#uToSD' , function() {
+    gUploadChoice('upload');
+}).on('click', 'button#dPrint' , function() {
+    gUploadChoice('print');
+}).on('click', 'button#uNprint' , function() {
+    gUploadChoice('uploadandprint');
 });
 
 //Settings/cookie buttons
@@ -420,98 +388,54 @@ function isNumber(n) {
 }
 
 function fileDrop() {
-    $('#uploadGfile').fileDrop({
+    $('#filedropall').fileDrop({
         decodeBase64: true,
         removeDataUriScheme: true,
-        overClass: 'btn-success',
+        overClass: 'filecropall',
         onFileRead: function(file) {
-            handleFileDrop(file[0].data, file[0].name, "upload");
-        }
-    });
-
-    $('#uploadPrintGfile').fileDrop({
-        decodeBase64: true,
-        removeDataUriScheme: true,
-        overClass: 'btn-success',
-        onFileRead: function(file) {
-            handleFileDrop(file[0].data, file[0].name, "uploadandprint");
-        }
-    });
-
-    $('#printGfile').fileDrop({
-        decodeBase64: true,
-        removeDataUriScheme: true,
-        overClass: 'btn-success',
-        onFileRead: function(file) {
-            handleFileDrop(file[0].data, file[0].name, "print");
-        }
-    });
-
-    $('#ulConfigG').fileDrop({
-        decodeBase64: true,
-        removeDataUriScheme: true,
-        overClass: 'btn-success',
-        onFileRead: function(file) {
-            handleFileDrop(file[0].data, file[0].name, "config");
-        }
-    });
-
-    $('#ulReprapHTM').fileDrop({
-        decodeBase64: true,
-        removeDataUriScheme: true,
-        overClass: 'btn-success',
-        onFileRead: function(file) {
-            handleFileDrop(file[0].data, file[0].name, "htm");
+            handleFileDrop(file[0].data, file[0].name);
         }
     });
 }
 
-function handleFileDrop(data, fName, action) {
-    var ext = getFileExt(fName).toLowerCase();
-    var fname = getFileName(fName).toLowerCase();
+/**
+ * 
+ * @param {string} data - file data
+ * @param {string} fname - filename
+ * @returns {Boolean}
+ */
+function handleFileDrop(data, fname) 
+{
+    var fname83;
+    var ext = getFileExt(fname).toLowerCase();
     if (ext === "g" || ext === "gco" || ext === "gcode" || (action === "htm" && ext === "htm")) {
         if (fname.length > 8) {
-            fname = fname.substr(0, 8);
+            fname83 = fname.substr(0, 8);
         }
         gFile = data.split(/\r\n|\r|\n/g);
         gFileLength = gFile.length;
-        timer();
-        switch (action) {
-            case "config":
-                gFilename = fname + '.g';
-                $.askElle('gcode', "M559 P" + gFilename);
-                message("info", "Config file " + gFilename + " upload started");
-                uploadModal();
-                $('span#ulTitle').text("Uploading " + gFilename);
-                uploadLoop(action, "");
+        gFilename = fname;
+        switch (fname) {
+            case "config.g":
+                uploadFile(fname, 'M559 P', "Config");
                 break;
-            case "htm":
-                gFilename = fname + '.htm';
-                $.askElle('gcode', "M560");
-                uploadModal();
-                $('span#ulTitle').text("Uploading " + gFilename);
-                message("info", "HTM file " + gFilename + " upload started");
-                maxUploadBuffer = 300;
-                maxUploadCommands = 2;
-                uploadLoop(action, "");
+            case "reprap.htm":
+                uploadFile(fname, 'M560 ', "HTM");
                 break;
-            case "upload":
-                uploadFile(fName, fName, "");
+            case "setbed.g":
+                uploadFile(fname);
                 break;
-            case "print":
-                gFilename = fName;
-                saveFileData("*");
-                message("info", "Web Printing " + fName + " started");
-                $('span#gFileDisplay').html('<strong>Direct from Web printing ' + fName + '</strong>');
-                webPrinting = true;
-                resetLayerData("*");
-                $('#tabs a:eq(1)').tab('show'); //show print status after drop tab
-                uploadLoop(action, "");
-                break;
-            case "uploadandprint":
-                var tempFilename = "tempWebPrint.gcode";
-                uploadFile(fName, tempFilename, tempFilename);
-                break;
+            default:
+            //what do you want to do with this G file?
+            //Upload to SD, Direct Print, Upload to Temp and Print
+                modalMessage('Upload choice for '+fname, "<div class='text-center'><span id='ulTitle'>What would you like to do?</span><br />" +
+                    "<div class='btn-group-vertical'>" +
+                    "<button type='button' id='uToSD' class='btn btn-default'>Upload to SD</button>" +
+                    "<button type='button' id='dPrint' class='btn btn-default'>Direct Print</button>" +
+                    "<button type='button' id='uNprint' class='btn btn-default'>Upload temp\'n print</button>" +
+                    "</div></div>", true);
+            break;
+       
         }
     } else {
         //alert('Not a G Code file');
@@ -520,42 +444,64 @@ function handleFileDrop(data, fName, action) {
     }
 }
 
-function saveFileData(toFile)
-{
-    var h = findHeights();
-    lastExaminedFile = toFile;
-    lastHeight = h[0];
-    layerHeight = parseFloat(Math.round((h[1] - h[2]) * 100) / 100).toFixed(2); 
-    getSlic3rSettings();
+function gUploadChoice(action) {
+    timer(); //start upload timer
+    switch (action) {
+            case "upload":
+                uploadFile(gFilename, 'M28 ', 'G');
+                break;
+            case "print":
+                $('div#modal').modal('hide');
+                message("info", "Web Printing " + gFilename + " started");
+                $('span#gFileDisplay').html('<strong>Direct Web printing ' + gFilename + '</strong>');
+                webPrinting = true;
+                resetLayerData();
+                findHeights();
+                $('#tabs a:eq(1)').tab('show'); //show print status tab after drop 
+                uploadLoop(action);
+                break;
+            case "uploadandprint":
+                findHeights();
+                uploadFile(gFilename, 'M28 ', 'Temp');
+                printSDfile(gFilename);
+                break;
+    }        
 }
 
-function uploadFile(fromFile, toFile, printAfterUpload)
+/**
+ * Upload a file to the ormerod
+ * 
+ * @param {string} filename - filename of file to upload
+ * @param {string} g - gcode to use to upload (default: M28)
+ * @param {string} type - type of file (default: G) 
+ */
+function uploadFile(filename, g, type)
 {
-    saveFileData(toFile);
-    $.askElle('gcode', "M28 " + toFile);
-    if (fromFile == toFile)
-    {
-        message("info", "File Upload of " + fromFile + " started");
-    }
-    else
-    {
-        message("info", "File Upload of " + fromFile + " to " + toFile + " started");
-    }
-    gFilename = fromFile;
+    $.askElle('gcode', g + filename);
+    message("info", type + " File, " + filename + ", Upload started");
     uploadModal();
-    $('span#ulTitle').text("Uploading " + fromFile);
-    uploadLoop("upload", printAfterUpload);
+    $('span#ulTitle').text("Uploading " + filename);
+    uploadLoop("upload");
+    if (type == 'Temp') $('div#modal').modal('hide');
 }
 
+/**
+ * print a G file that is already on the Duet SD card
+ * 
+ * @param {string} fName - filename of g file to print
+  */
 function printSDfile(fName)
 {
     $.askElle('gcode', "M23 " + fName + "\nM24");
     message('success', "File [" + fName + "] sent to print");
     $('span#gFileDisplay').html('<strong>Printing ' + fName + ' from Duet SD card</strong>');
-    resetLayerData(fName);
+    resetLayerData();
     $('#tabs a:eq(1)').tab('show');
 }
 
+/**
+ *  display the uploding file modal progress box 
+ */
 function uploadModal() {
     modalMessage('File Upload Status', "<span id='ulTitle'>File Upload Status</span>" +
             "<div class='progress text-center'>" +
@@ -566,6 +512,12 @@ function uploadModal() {
             "</div>", false);
 }
 
+/**
+ * upload button click Filereader (opposed to file drop reader)
+ * 
+ * @param {string} file - filename
+ * @param {function} onLoadCallback - callback function
+ */
 function readFile(file, onLoadCallback) {
     //read file from click-choose type printing/upload
     var reader = new FileReader();
@@ -591,7 +543,8 @@ function findHeights() {
         }
          i--;
     }
-    return height;
+    objHeight = height[0];
+    layerHeight = parseFloat(Math.round((height[1] - height[2]) * 100) / 100).toFixed(2);
 }
 
 function getSlic3rSettings() {
@@ -620,7 +573,7 @@ function getSlic3rSettings() {
     }
 }
 
-function uploadLoop(action, fileToPrint) { //Web Printing/Uploading
+function uploadLoop(action) { //Web Printing/Uploading
     var wait = 5;
     var resp;
     switch (true) {
@@ -639,17 +592,9 @@ function uploadLoop(action, fileToPrint) { //Web Printing/Uploading
                 case "upload":
                     $.askElle('gcode', "M29");
                     listGFiles();
-                    if (fileToPrint != "")
-                    {
-                        $('div#modal').modal('hide');
-                        printSDfile(fileToPrint);
-                    }
-                    else
-                    {
-                        $('span#ulTitle').text(gFilename + " Upload Complete in " + duration);
-                        $('div#modal button#modalClose').removeClass('hidden');
-                        message("info", gFilename + " Upload Complete in " + duration);
-                    }
+                    $('span#ulTitle').text(gFilename + " Upload Complete in " + duration);
+                    $('div#modal button#modalClose').removeClass('hidden');
+                    message("info", gFilename + " Upload Complete in " + duration);
                     break;
                 case "config":
                 case "htm":
@@ -680,7 +625,7 @@ function uploadLoop(action, fileToPrint) { //Web Printing/Uploading
                 webSend(action);
             }
             setTimeout(function() {
-                uploadLoop(action, fileToPrint);
+                uploadLoop(action);
             }, wait);
             break;
     }
@@ -985,12 +930,8 @@ function whichLayer(currZ) {
     return n;
 }
 
-function resetLayerData(fName) {
+function resetLayerData() {
     //clear layer count,times and chart
-    if (fName == lastExaminedFile && isNumber(lastHeight))
-    {
-        $('input#objheight').val(lastHeight.toString());
-    }
     layerData = [];
     printStartTime = null;
     setProgress(0, 'print', 0, 0);

@@ -28,3 +28,5 @@ body {
 div#layerChart {width:510px; height: 120px}
 button#connect, button#stop, button#pause, button#reset { width:85px }
 div#gFileList, div#gFileList2, div#gFileList3 {vertical-align: top}
+
+.filedropall {background-color: #dff0d8}
