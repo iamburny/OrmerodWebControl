@@ -1,6 +1,6 @@
 /*! Reprap Ormerod Web Control | by Matt Burnett <matt@burny.co.uk>. | open license
  */
-var ver = 0.73; //App version
+var ver = 0.74; //App version
 var polling = false; 
 var webPrinting = false;
 var printing = false;
@@ -1026,8 +1026,10 @@ function whichLayer(currZ) {
 
 function resetLayerData(h, f) {
     //clear layer count,times and chart
-	if (h != 0)
-	{
+	if (h == 0) {
+		$('input#objheight').val("");
+	}
+	else {
 		$('input#objheight').val(h.toString());
 	}
 	objTotalFilament = f;
