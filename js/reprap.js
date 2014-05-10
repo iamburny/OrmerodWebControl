@@ -1,13 +1,13 @@
 /*! Reprap Ormerod Web Control | by Matt Burnett <matt@burny.co.uk>. | open license
  */
-var ver = 0.74; //App version
+var ver = 0.75; //App version
 var polling = false; 
 var webPrinting = false;
 var printing = false;
 var paused = false;
 var chart,chart2,ormerodIP,layerCount,currentLayer,objHeight,objTotalFilament,startingFilamentPos,objUsedFilament,printStartTime,gFileLength,gFilename,buffer,currentFilamentPos,timerStart,storage,layerHeight,lastUpdatedTime;
-var maxUploadBuffer = 800;
-var maxUploadCommands = 20;
+var maxUploadBuffer = 1500;
+var maxUploadCommands = 50;
 var messageSeqId = 0;
 
 //Temp/Layer Chart settings
@@ -638,8 +638,6 @@ function getSlic3rSettings() {
 }
 
 function uploadLoop(action, fileToPrint) { //Web Printing/Uploading
-    var wait = 5;
-    var resp;
     switch (true) {
         case webPrinting == false && action === 'print':
             //Break Loop stop sending
@@ -681,21 +679,29 @@ function uploadLoop(action, fileToPrint) { //Web Printing/Uploading
             }
             break;
         default:
-            if (buffer == null || buffer < 100) {
-                resp = $.askElle('status', '');
+            if (buffer == null || buffer < 500) {
+                var resp = $.askElle('status', '');
                 if (typeof resp != 'undefined') {
                     buffer = resp.buff;
                 } else {
                     buffer = 0;
                 }
             }
-            if (buffer < 100) {
-                wait = 20;
-            }else if (paused === true) {
-                wait = 2000;
-            } else {
-                webSend(action);
-            }
+			var wait = 20;
+			if (paused == true) {
+				wait = 2000;
+			} else if (buffer >= 100) {
+				// Send a number of packets in quick succession while there is plenty of buffer space, to speed up the file upload.
+				// If we send too many then the user interface doesn't update often enough. Five seems about right.
+				var i = 0;
+				do {
+					webSend(action);
+					++i;
+				} while (i < 5 && gFile.length > 0 && buffer >= 600);
+				if (buffer >= 100) {
+					wait = 3;
+				}
+			}
             setTimeout(function() {
                 uploadLoop(action, fileToPrint);
             }, wait);
