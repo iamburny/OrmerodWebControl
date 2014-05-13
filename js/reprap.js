@@ -61,6 +61,7 @@ $(document).ready(function() {
 
     moveVals(['X', 'Y', 'Z']);
     
+    ormerodIP = location.host;
     $('#hostLocation').text(ormerodIP);
 
     if ($.support.fileDrop) {
@@ -667,7 +668,8 @@ function findHeights() {
     switch (printType) {
         case 'directprint':
             height = findHeightsInG();
-            findOtherGMeta();
+            var fil = findOtherGMeta();
+            height['objTotalFilament'] = fil;
             break;
         case 'uploadandprint':
         case 'printfromSD':
@@ -685,7 +687,6 @@ function findHeights() {
     }
     //set global height
     layerHeight = height['layerHeight'] ? height['layerHeight'] : storage.get('settings', 'layerHeight');
-    ;
     objHeight = height['objHeight'];
     objTotalFilament = height['objTotalFilament'];
     updateHeightsDisplay();
@@ -693,8 +694,8 @@ function findHeights() {
 
 function updateHeightsDisplay() {
     $('input#objheight').val(objHeight);
-    $('table#slic3r tbody').append('<tr><th>Layer Height</th></tr><tr><td>' + layerHeight + 'mm</td></tr>');
-    $('table#slic3r tbody').append('<tr><th>Filament Used</th></tr><tr><td>' + objTotalFilament + 'mm</td></tr>');
+    $('table#slic3r tbody').append('<tr><th>Layer Height</th></tr><tr><td>' + layerHeight + '</td></tr>');
+    //$('table#slic3r tbody').append('<tr><th>Filament Used</th></tr><tr><td>' + objTotalFilament + '</td></tr>');
 }
 
 /**
@@ -704,11 +705,12 @@ function updateHeightsDisplay() {
 function findHeightsInG() {
     var height = [];
     var currentLine = gFileLength - 1;
-    var readUntilLine = gFileLength - 400; //last 400
+    var readUntilLine = gFileLength - 2000; //last 400
     //work backwords from end of the file until 400 or 3 G1 Z commands found
     while (height.length < 3 && currentLine > readUntilLine) {
         //get last 3 G1 Z commands
-        if (gFile[currentLine].search('/^G1\sZ[0-9]*\.?[0-9]+/')) {
+        var searchPos = gFile[currentLine].search(/^G1\sZ[0-9]*\.?[0-9]+/i);
+        if (searchPos >= 0) {
             end = gFile[currentLine].indexOf(' ', 4);
             if (end > 0) {
                 height.push(gFile[currentLine].substr(4, end - 4));
@@ -729,6 +731,7 @@ function findHeightsInG() {
  */
 function findOtherGMeta() {
     var meta = [];
+    var fil;
 
     //work from start
     var currentLine = 0;
@@ -744,13 +747,15 @@ function findOtherGMeta() {
     var readUntilLine = gFileLength - 100; //last 100 lines
     while (currentLine > readUntilLine) {
         meta = readLine(gFile[currentLine]);
-        if (meta[0] == 'Filament Used') {
-            objTotalFilament = parseLine('', 'mm', meta[1]);
-        } else {
-            meta ? $('table#slic3r tbody').append('<tr><th>' + meta[0] + '</th></tr><tr><td>' + meta[1] + '</td></tr>') : false;
+        if (meta[0] == 'Total Filament') {
+            fil = parseLine('', 'mm', meta[1]);
+        }
+        if (meta.length > 0){
+            $('table#slic3r tbody').append('<tr><th>' + meta[0] + '</th></tr><tr><td>' + meta[1] + '</td></tr>');
         }
         currentLine--;
     }
+    return fil;
 }
 
 /** 
@@ -772,7 +777,7 @@ function readLine(string) {
         'Layer Height': ['layer_height = ', ''],
         'Extrusion Multiplier': ['extrusion_multiplier = ', ''],
         'Perimeter Width': ['perimeters extrusion width =', 'mm'],
-        'Filament Used': ['filament used = ', '']
+        'Total Filament': ['filament used = ', '']
     };
 
     for (var key in searchLineFor) {
@@ -782,8 +787,6 @@ function readLine(string) {
             if (linePos > 0) {
                 return [key, parseLine(value[0], value[1], string)];
             }
-        } else {
-            return false;
         }
     }
     return false;
@@ -801,7 +804,8 @@ function parseLine(needle_b4, needle_af, haystack) {
     var startPos = needle_b4 == '' ? 0 : haystack.indexOf(needle_b4) + needle_b4.length;
     var endPos = needle_af == '' ? haystack.length : haystack.indexOf(needle_af);
     var len = endPos - startPos;
-    return haystack.substr(startPos, len);
+    var result = haystack.substr(startPos, len);
+    return result;
 }
 
 /**

@@ -30,6 +30,19 @@ switch ($_SERVER['REQUEST_URI']) {
             'status' => 'I'
         );
         break;
+    case '/rr_gcode':
+        $response = array(
+            'buff' => 900,
+            'extr' => array('6212.856'),
+            'heaters' => array('60', '201.4'),
+            'homed' => array(1, 1, 1),
+            'pos' => array(100, 100, 5, 0.22),
+            'probe' => '51',
+            'resp' => 'ok',
+            'seq' => 10461,
+            'status' => 'I'
+        );
+        break;
     case '/phpinfo':
         phpinfo();
         break;
