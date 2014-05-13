@@ -1,0 +1,4 @@
+RewriteEngine on
+RewriteBase /
+RewriteRule ^rr_files$ /index.php [L]
+RewriteRule ^rr_status$ /index.php [L]

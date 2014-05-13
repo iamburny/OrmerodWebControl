@@ -60,8 +60,7 @@ $(document).ready(function() {
     loadSettings();
 
     moveVals(['X', 'Y', 'Z']);
-
-    ormerodIP = location.host;
+    
     $('#hostLocation').text(ormerodIP);
 
     if ($.support.fileDrop) {
@@ -1068,6 +1067,7 @@ function estEndTime() {
     var d = new Date();
     var utime = d.getTime();
     var layerLeft = layerCount - currentLayer;
+    
     if (layerData.length > firstLayer && layerCount > 0) {
         var lastLayer = layerData[layerData.length - 1] - layerData[layerData.length - 2];
         var llTimeR = new Date(utime + (lastLayer * layerLeft));
@@ -1096,6 +1096,7 @@ function estEndTime() {
             $('span#avg5').text(avg5R.toLocaleTimeString());
         }
     }
+    
     if (objTotalFilament > 0)
     {
         if (currentFilamentPos - startingFilamentPos < objUsedFilament - 10) {
@@ -1113,6 +1114,12 @@ function estEndTime() {
     }
 }
 
+/**
+ * current Z pos divided by layer height should equal current layer
+ * 
+ * @param {int} currZ - current Z axis position
+ * @returns {Number} 
+ */
 function whichLayer(currZ) {
     if (!layerHeight)
         layerHeight = storage.get('settings', 'layerHeight');
