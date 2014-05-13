@@ -1,6 +1,6 @@
 /*! Reprap Ormerod Web Control | by Matt Burnett <matt@burny.co.uk>. | open license
  */
-var ver = 0.75; //App version
+var ver = 0.76; //App version
 var polling = false;
 var webPrinting = false;
 var printing = false;
@@ -8,8 +8,8 @@ var paused = false;
 var chart, chart2, ormerodIP, layerCount, currentLayer, startProgress, printStartTime;
 var objTotalFilament, currentFilamentPos, startingFilamentPos, objUsedFilament, objHeight, layerHeight;
 var gFileLength, gFilename, buffer, timerStart, storage, printType;
-var maxUploadBuffer = 800;
-var maxUploadCommands = 20;
+var maxUploadBuffer = 1500;
+var maxUploadCommands = 50;
 var messageSeqId = 0;
 
 //Temp/Layer Chart settings
@@ -60,7 +60,7 @@ $(document).ready(function() {
     loadSettings();
 
     moveVals(['X', 'Y', 'Z']);
-    
+
     ormerodIP = location.host;
     $('#hostLocation').text(ormerodIP);
 
@@ -513,8 +513,6 @@ function uploadFile(filename, g, type)
  * @returns {undefined}
  */
 function uploadLoop(action) { //Web Printing/Uploading
-    var wait = 5;
-    var resp;
     switch (true) {
         case webPrinting == false && action === 'print':
             //Break Loop stop sending
@@ -553,20 +551,28 @@ function uploadLoop(action) { //Web Printing/Uploading
             }
             break;
         default:
-            if (buffer == null || buffer < 100) {
-                resp = $.askElle('status', '');
+            if (buffer == null || buffer < 500) {
+                var resp = $.askElle('status', '');
                 if (typeof resp != 'undefined') {
                     buffer = resp.buff;
                 } else {
                     buffer = 0;
                 }
             }
-            if (buffer < 100) {
-                wait = 20;
-            } else if (paused === true) {
+            var wait = 20;
+            if (paused == true) {
                 wait = 2000;
-            } else {
-                webSend(action);
+            } else if (buffer >= 100) {
+                // Send a number of packets in quick succession while there is plenty of buffer space, to speed up the file upload.
+                // If we send too many then the user interface doesn't update often enough. Five seems about right.
+                var i = 0;
+                do {
+                    webSend(action);
+                    ++i;
+                } while (i < 5 && gFile.length > 0 && buffer >= 600);
+                if (buffer >= 100) {
+                    wait = 3;
+                }
             }
             setTimeout(function() {
                 uploadLoop(action);
@@ -750,7 +756,7 @@ function findOtherGMeta() {
         if (meta[0] == 'Total Filament') {
             fil = parseLine('', 'mm', meta[1]);
         }
-        if (meta.length > 0){
+        if (meta.length > 0) {
             $('table#slic3r tbody').append('<tr><th>' + meta[0] + '</th></tr><tr><td>' + meta[1] + '</td></tr>');
         }
         currentLine--;
@@ -1071,7 +1077,7 @@ function estEndTime() {
     var d = new Date();
     var utime = d.getTime();
     var layerLeft = layerCount - currentLayer;
-    
+
     if (layerData.length > firstLayer && layerCount > 0) {
         var lastLayer = layerData[layerData.length - 1] - layerData[layerData.length - 2];
         var llTimeR = new Date(utime + (lastLayer * layerLeft));
@@ -1100,7 +1106,7 @@ function estEndTime() {
             $('span#avg5').text(avg5R.toLocaleTimeString());
         }
     }
-    
+
     if (objTotalFilament > 0)
     {
         if (currentFilamentPos - startingFilamentPos < objUsedFilament - 10) {
