@@ -1,13 +1,13 @@
 /*! Reprap Ormerod Web Control | by Matt Burnett <matt@burny.co.uk>. | open license
  */
-var ver = 0.75; //App version
+var ver = 0.76; //App version
 var polling = false; 
 var webPrinting = false;
 var printing = false;
 var paused = false;
 var chart,chart2,ormerodIP,layerCount,currentLayer,objHeight,objTotalFilament,startingFilamentPos,objUsedFilament,printStartTime,gFileLength,gFilename,buffer,currentFilamentPos,timerStart,storage,layerHeight,lastUpdatedTime;
-var maxUploadBuffer = 1500;
-var maxUploadCommands = 50;
+var maxUploadBuffer = 1500;		// note: this gets reset at some places in the code
+var maxUploadCommands = 100;	// note: this gets reset at some places in the code
 var messageSeqId = 0;
 
 //Temp/Layer Chart settings
@@ -28,15 +28,14 @@ jQuery.extend({
         var result;
         var query = "";
         switch(reqType) {
-            case 'gcode':
-                code = code.replace(/\n/g, '%0A').replace('+', '%2B').replace('-', '%2D').replace(/\s/g, '+');
-                query = "?gcode="+code;
-                break;
-            case 'htm':
-                query = "?gcode="+encodeURIComponent(code);
+			case 'encodedGcode':
+                query = "?gcode="+code;		// 'code' has already been URI encoded
                 reqType = "gcode";
+				break;
+            case 'gcode':
+                query = "?gcode="+encodeURIComponent(code);
                 break;
-			case 'fileinfo':
+ 			case 'fileinfo':
 				query = "?name="+encodeURIComponent(code);
 				break;
         }
@@ -673,8 +672,8 @@ function uploadLoop(action, fileToPrint) { //Web Printing/Uploading
                     message("info", gFilename + " Upload Complete in "+ duration);
                     $('span#ulTitle').text(gFilename + " Upload Complete in "+ duration);
                     $('div#modal button#modalClose').removeClass('hidden');
-                    maxUploadBuffer = 800;
-                    maxUploadCommands = 20;
+                    maxUploadBuffer = 1500;
+                    maxUploadCommands = 100;
                     break;                    
             }
             break;
@@ -710,26 +709,29 @@ function uploadLoop(action, fileToPrint) { //Web Printing/Uploading
 }
 
 function webSend(action) { //Web Printing/Uploading
-    var i=0;
-    var line = "";
-    var resp;
 	if (buffer > maxUploadBuffer) {
-            buffer = maxUploadBuffer;
+        buffer = maxUploadBuffer;
 	}
     if (gFile.length > 0) {
-        while(gFile.length > 0 && i < maxUploadCommands && (line.length + gFile[0].length + 3) < buffer ) {
-            if (i != 0) {
-                line += "\n"; //"%0A";
-            }
-            line += gFile[0];
-            gFile.shift();
-            i++;
+		var i = 0;
+		var extra = 0;	// extra space we need to insert a newline
+		var line = "";
+		var resp;
+		while(gFile.length > 0 && i < maxUploadCommands && line.length + gFile[0].length + extra < buffer) {
+			// encode the line and check that it still fits
+			var encodedLine = encodeURIComponent(gFile[0]);
+			if (line.length + encodedLine.length + extra >= buffer ) {
+				break;
+			}
+			if (i != 0) {
+				line += "%0A";
+			}
+			line += encodedLine;
+			gFile.shift();
+			i++;
+			extra = 3;
         }
-        if (action==="htm") {
-             resp = $.askElle('htm', line); //send chunk of gcodes, and get buffer response
-        } else {
-             resp = $.askElle('gcode', line); //send chunk of gcodes, and get buffer response
-        }
+        var resp = $.askElle('encodedGcode', line); //send chunk of gcodes or html, and get buffer response
         
         if (typeof resp != 'undefined') {
             buffer = resp.buff;
@@ -1011,7 +1013,7 @@ function estEndTime() {
 			startingFilamentPos = currentFilamentPos - objUsedFilament;
 		}
 		objUsedFilament = currentFilamentPos - startingFilamentPos;
-		if (objUsedFilament <= objTotalFilament && objUsedFilament > objTotalFilament * 0.05) {	//if at least 5% filament consumed
+		if (objUsedFilament <= objTotalFilament && objUsedFilament > objTotalFilament * 0.03) {	//if at least 3% filament consumed
 			var timeSoFar = utime - printStartTime;
 			var timeLeft = timeSoFar * (objTotalFilament - objUsedFilament)/objUsedFilament;
 			var estEndTimeFil = new Date(utime + timeLeft);
