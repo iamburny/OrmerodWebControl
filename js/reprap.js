@@ -5,7 +5,7 @@ var polling = false;
 var webPrinting = false;
 var printing = false;
 var paused = false;
-var chart,chart2,ormerodIP,layerCount,currentLayer,objHeight,objTotalFilament,startingFilamentPos,objUsedFilament,printStartTime,gFileLength,gFilename,buffer,currentFilamentPos,timerStart,storage,layerHeight,lastUpdatedTime;
+var chart,chart2,ormerodIP,layerCount,currentLayer,objHeight,objTotalFilament,startingFilamentPos,objUsedFilament,printStartTime,gFilename,buffer,currentFilamentPos,timerStart,storage,layerHeight,lastUpdatedTime;
 var maxUploadBuffer = 1500;		// note: this gets reset at some places in the code
 var maxUploadCommands = 100;	// note: this gets reset at some places in the code
 var messageSeqId = 0;
@@ -19,9 +19,11 @@ var bedColour = "#454BFF"; //blue
 var headColour = "#FC2D2D"; //red
 
 var gFile = [];
+var gFileIndex = 0;
 var macroGs = ['setbed.g'];
 var chevLeft = "<span class='glyphicon glyphicon-chevron-left'></span>";
 var chevRight = "<span class='glyphicon glyphicon-chevron-right'></span>";
+var lastProgress = 0;
 
 jQuery.extend({
     askElle: function(reqType, code) {
@@ -237,6 +239,7 @@ $('div#panicBtn button').on('click', function() {
         case "reset":
             //reset printing after pause
             gFile = [];
+			gFileIndex = 0;
             printing = false;
             paused = false;
             btnVal = "M1";
@@ -468,7 +471,7 @@ function handleFileDrop(data, fName, action) {
     if (ext === "g" || ext === "gco" || ext === "gcode" || (action === "htm" && ext === "htm")) {
         if (fname.length > 8) { fname = fname.substr(0, 8); }
         gFile = data.split(/\r\n|\r|\n/g);
-        gFileLength = gFile.length;
+		gFileIndex = 0;
         timer();
         switch (action) {
             case "config":
@@ -575,7 +578,7 @@ function findHeight() {
     var height=0;
     var start=0;    
     var end=0;
-    var i=gFileLength - 1;
+    var i = gFile.length - 1;
     while (height===0 && i > 1) {
         start = gFile[i].indexOf('G1 Z');
         if (start >= 0) {
@@ -641,8 +644,9 @@ function uploadLoop(action, fileToPrint) { //Web Printing/Uploading
         case webPrinting == false && action === 'print':
             //Break Loop stop sending
            gFile = [];
+		   gFileIndex = 0;
 		   // fall through...
-        case gFile.length === 0:
+        case gFileIndex == gFile.length:
             //Finished with Dropped file, stop loop, end tasks
             var duration = (timer() - timerStart).toHHMMSS();
             switch (action) {
@@ -696,7 +700,7 @@ function uploadLoop(action, fileToPrint) { //Web Printing/Uploading
 				do {
 					webSend(action);
 					++i;
-				} while (i < 5 && gFile.length > 0 && buffer >= 600);
+				} while (i < 5 && gFileIndex < gFile.length && buffer >= 600);
 				if (buffer >= 100) {
 					wait = 3;
 				}
@@ -712,14 +716,14 @@ function webSend(action) { //Web Printing/Uploading
 	if (buffer > maxUploadBuffer) {
         buffer = maxUploadBuffer;
 	}
-    if (gFile.length > 0) {
+    if (gFileIndex < gFile.length) {
 		var i = 0;
 		var extra = 0;	// extra space we need to insert a newline
 		var line = "";
 		var resp;
-		while(gFile.length > 0 && i < maxUploadCommands && line.length + gFile[0].length + extra < buffer) {
+		while(gFileIndex < gFile.length && i < maxUploadCommands && line.length + gFile[gFileIndex].length + extra < buffer) {
 			// encode the line and check that it still fits
-			var encodedLine = encodeURIComponent(gFile[0]);
+			var encodedLine = encodeURIComponent(gFile[gFileIndex]);
 			if (line.length + encodedLine.length + extra >= buffer ) {
 				break;
 			}
@@ -727,7 +731,7 @@ function webSend(action) { //Web Printing/Uploading
 				line += "%0A";
 			}
 			line += encodedLine;
-			gFile.shift();
+			gFileIndex++;
 			i++;
 			extra = 3;
         }
@@ -739,7 +743,7 @@ function webSend(action) { //Web Printing/Uploading
             buffer = 0;
         }
         
-        if (!webPrinting) setProgress(Math.floor((1 - (gFile.length / gFileLength)) * 100), "ul", 0,0);
+        if (!webPrinting) setProgress(Math.floor((100 * gFileIndex) / gFile.length), "ul", 0,0);
     }
 }
 
@@ -1089,33 +1093,36 @@ function zeroPrefix(num) {
 }
 
 function setProgress(percent, bar, layer, layers) {
-    var barText = $('span#'+bar+'ProgressText');
-    var offText = $('span#'+bar+'OffBar');
-    var ptext = percent + "% Complete";
-    if (bar == 'print') {
-		if (layers > 0) {
-			ptext += ", Layer " + layer + " of " + layers;
+	if (percent == 0 || percent != lastProgress) {
+		lastProgress = percent;
+		var barText = $('span#'+bar+'ProgressText');
+		var offText = $('span#'+bar+'OffBar');
+		var ptext = percent + "% Complete";
+		if (bar == 'print') {
+			if (layers > 0) {
+				ptext += ", Layer " + layer + " of " + layers;
+			}
+			if (objTotalFilament > 0) {
+				ptext += ", Filament " + (currentFilamentPos - startingFilamentPos) + " of " + objTotalFilament + "mm";
+			}
 		}
-		if (objTotalFilament > 0) {
-			ptext += ", Filament " + (currentFilamentPos - startingFilamentPos) + " of " + objTotalFilament + "mm";
+		
+		switch (true) {
+			case percent <= 40 && percent > 0:
+				barText.text('').attr('title', '');
+				offText.text(ptext).attr('title', ptext);
+				break;
+			case percent > 40:
+				barText.text(ptext).attr('title', ptext);
+				offText.text('').attr('title', '');
+				break;
+			default:
+				barText.text('').attr('title', '');
+				offText.text('0% complete');
+				break;
 		}
-    }
-    
-    switch (true) {
-        case percent <= 40 && percent > 0:
-            barText.text('').attr('title', '');
-            offText.text(ptext).attr('title', ptext);
-            break;
-        case percent > 40:
-            barText.text(ptext).attr('title', ptext);
-            offText.text('').attr('title', '');
-            break;
-        default:
-            barText.text('').attr('title', '');
-            offText.text('0% complete');
-            break;
-    }
-    $('div#'+bar+'Progress').css("width", percent + "%");
+		$('div#'+bar+'Progress').css("width", percent + "%");
+	}
 }
 
 function parseLayerData() {
