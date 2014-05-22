@@ -4,7 +4,7 @@ var ver = 0.79; //App version
 var polling = false; 
 var printing = false;
 var paused = false;
-var chart,chart2,ormerodIP,layerCount,currentLayer,objHeight,objTotalFilament,startingFilamentPos,objUsedFilament,printStartTime,gFilename,ubuff,uerr,currentFilamentPos,timerStart,storage,layerHeight,lastUpdatedTime;
+var chart,chart2,ormerodIP,layerCount,currentLayer,objHeight,objTotalFilament,startingFilamentPos,objUsedFilament,printStartTime,gFilename,ubuff,currentFilamentPos,timerStart,storage,layerHeight,lastUpdatedTime;
 var maxUploadBuffer = 1000;
 var messageSeqId = 0;
 
@@ -35,6 +35,7 @@ jQuery.extend({
                 break;
  			case 'fileinfo':
 			case 'upload_begin':
+			case 'delete':
 				query = "?name="+encodeURIComponent(code);
 				break;
         }
@@ -278,13 +279,17 @@ $("div#gFileList1, div#gFileList2, div#gFileList3")
 }).on('mouseout', 'div#gFileLink', function() {
     $(this).removeClass('file-grey');
 }).on('mouseover', 'span#fileDelete', function() {
-    $(this).parent().addClass('file-red');
+    $(this).parent().parent().parent().parent().parent().addClass('file-red');
 }).on('mouseout', 'span#fileDelete', function() {
-    $(this).parent().removeClass('file-red');
+    $(this).parent().parent().parent().parent().parent().removeClass('file-red');
 }).on('click', 'span#fileDelete', function() {
-    var filename = $(this).parent().text();
-    $.askElle('gcode', "M30 " + filename);
-    message('success', "G files [" + filename + "] Deleted from the SD card");
+    var filename = "gcodes/" + $(this).parent().parent().text();
+    var resp = $.askElle('delete', filename);
+	if (resp.err == 0) {
+		message('success', "G file [" + filename + "] deleted from the SD card");
+	} else {
+		modalMessage("Delete failed", "Failed to delete file " + filename, true);
+	}
     listGFiles();
 });
 $("button#filereload").on('click', function() {
@@ -451,6 +456,11 @@ function fileDrop() {
     });
 }
 
+function getFileLength() {
+	var kbytes = gFileData.length/1024;
+	return (kbytes < 1000) ? kbytes.toFixed(0) + "Kb" : (kbytes/1024).toFixed(2) + "Mb";
+}
+
 function handleFileDrop(data, fName, action) {
     var ext = getFileExt(fName).toLowerCase();
     if (ext === "g" || ext === "gco" || ext === "gcode" || (action === "htm" && (ext === "htm" || ext == "js" || ext == "css"))) {
@@ -461,12 +471,10 @@ function handleFileDrop(data, fName, action) {
             case "config":
                 gFilename = fName;
                 var resp = $.askElle('upload_begin', "sys/"+gFilename);
-				if (resp.uerr == 0) {
+				if (resp.err == 0) {
 					ubuff = resp.ubuff;
 					message("info", "Config file "+gFilename+" upload started");
 					uploadModal();
-					$('span#ulTitle').text("Uploading " + gFilename);
-					uploadLoop(action, "");
 				} else {
 					uploadCantStart(gFilename);
 				}
@@ -484,10 +492,9 @@ function handleFileDrop(data, fName, action) {
 						break;
 				}					
                 var resp = $.askElle('upload_begin', "www/"+gFilename);
-				if (resp.uerr == 0) {
+				if (resp.err == 0) {
 					ubuff = resp.ubuff;
 					uploadModal();
-					$('span#ulTitle').text("Uploading " + gFilename);
 					message("info", "Web interface file "+gFilename+" upload started");
 					uploadLoop(action, "");
 				} else {
@@ -514,7 +521,7 @@ function handleFileDrop(data, fName, action) {
 function uploadFile(fromFile, toFile, printAfterUpload)
 {
 	var resp = $.askElle('upload_begin', toFile);
-	if (resp.uerr == 0) {
+	if (resp.err == 0) {
 		ubuff = resp.ubuff;
 		if (fromFile == toFile)
 		{
@@ -526,7 +533,6 @@ function uploadFile(fromFile, toFile, printAfterUpload)
 		}
 		gFilename = fromFile;
 		uploadModal();
-		$('span#ulTitle').text("Uploading " + fromFile);
 		uploadLoop("upload", printAfterUpload);
 	} else {
 		uploadCantStart(toFile);
@@ -553,13 +559,10 @@ function printSDfile(fName)
 }
 
 function uploadModal() {
-    modalMessage('File Upload Status',"<span id='ulTitle'>File Upload Status</span>"+
-    "<div class='progress text-center'>"+
-    "<div id='ulProgress' class='progress-bar' role='progressbar' aria-valuenow='60' aria-valuemin='0' aria-valuemax='100' style='width: 0%'>"+
-    "<span id='ulProgressText' title=''></span>"+
-    "</div>"+
-    "<span id='ulOffBar'>0% Complete</span>"+
-    "</div>", false);
+    modalMessage('File Upload Status',
+		"<span id='ulTitle'>Uploading " + gFilename + " (" + getFileLength() + ")</span> <span id='ulProgressText' class='pull-right'></span>"+
+		"<progress id='ulProgressBar' style='width:100%' max='100' value='0'></progress>",
+		false);
 }
 
 function uploadCantStart(toFile)
@@ -583,8 +586,7 @@ function uploadLoop(action, fileToPrint) { //Web Printing/Uploading
     if (gFileIndex == gFileData.length) {
 		//Finished with Dropped file, stop loop, end tasks
 		var resp = $.askElle('upload_end', "");
-		success = (resp.uerr == 0);
-		if (resp.uerr != 0) {
+		if (resp.err != 0) {
 			$('span#ulTitle').text(gFilename + " Upload Failed!");
 			$('div#modal button#modalClose').removeClass('hidden');
 			message("info", gFilename + " Upload Failed!");     
@@ -601,24 +603,22 @@ function uploadLoop(action, fileToPrint) { //Web Printing/Uploading
 					}
 					else
 					{
-						$('span#ulTitle').text(gFilename + " Upload Complete in " + duration);
+						$('span#ulTitle').text(gFilename + " uploaded " + getFileLength() + " in " + duration);
 						$('div#modal button#modalClose').removeClass('hidden');
 						message("info", gFilename + " Upload Complete in " + duration);     
 					}
 					break;
 				case "config":
 					$.askElle("gcode", "M503"); //update config.g on setting view
-					$('span#ulTitle').text(gFilename + " Upload Complete in "+ duration);
-					$('div#modal button#modalClose').removeClass('hidden');
-					message("info", gFilename + " Upload Complete in "+ duration);
-					break;                    
+					// no break
 				case "htm":    
-					$('span#ulTitle').text(gFilename + " Upload Complete in "+ duration);
+					$('span#ulTitle').text(gFilename + " uploaded " + getFileLength() + " in " + duration);
 					$('div#modal button#modalClose').removeClass('hidden');
 					message("info", gFilename + " Upload Complete in "+ duration);
 					break;
 			}
 		}
+		gFileData = "";
 	}
 	else {
 		var wait = 20;
@@ -633,11 +633,11 @@ function uploadLoop(action, fileToPrint) { //Web Printing/Uploading
 				webSend(action);
 				progress = Math.floor((100 * gFileIndex) / gFileData.length);
 			} while (ubuff >= 600 && gFileIndex < gFileData.length && progress == lastProgress);
-			if (ubuff >= 100) {
-				wait = 5;
+			if (ubuff >= 200) {
+				wait = 1;
 			}
 		}	
-		setProgress(progress, "ul", 0,0);
+		setProgress(progress, "ul", 0, 0);
 		setTimeout(function() {
 			uploadLoop(action, fileToPrint);
 		}, wait);
@@ -690,7 +690,8 @@ function listGFiles() {
                 $('div#quicks td:eq(0)').append('<a href="#" role="button" class="btn btn-default disabled" itemprop="M23 '+item+'\nM24" id="quickgfile">'+item+'</a>');
             }
         }
-        $('div#' + list).append('<div id="gFileLink" class="file-button"><span id="fileName">' + item + '</span> <span id="fileDelete" class="glyphicon glyphicon-trash pull-right"></span></div>');
+        $('div#' + list).append('<div id="gFileLink" class="file-button"><table style="width:100%"><tbody><tr><td style="width:90%"><span id="fileName" style="word-break:break-all">'
+			+ item + '</span></td><td style="width:10%"><span id="fileDelete" class="glyphicon glyphicon-trash pull-right"></span></td></tr></tbody></table></div>');
     });
 }
 
@@ -1010,8 +1011,7 @@ function zeroPrefix(num) {
 }
 
 function setProgress(percent, bar, layer, layers) {
-	var barText = $('span#'+bar+'ProgressText');
-	var offText = $('span#'+bar+'OffBar');
+	$('progress#'+bar+'ProgressBar').attr('value', percent);
 	var ptext = percent + "% Complete";
 	if (bar == 'print') {
 		if (layers > 0) {
@@ -1021,22 +1021,7 @@ function setProgress(percent, bar, layer, layers) {
 			ptext += ", Filament " + (currentFilamentPos - startingFilamentPos) + " of " + objTotalFilament + "mm";
 		}
 	}
-	
-	switch (true) {
-		case percent <= 40 && percent > 0:
-			barText.text('').attr('title', '');
-			offText.text(ptext).attr('title', ptext);
-			break;
-		case percent > 40:
-			barText.text(ptext).attr('title', ptext);
-			offText.text('').attr('title', '');
-			break;
-		default:
-			barText.text('').attr('title', '');
-			offText.text('0% complete');
-			break;
-	}
-	$('div#'+bar+'Progress').css("width", percent + "%");
+	$('span#'+bar+'ProgressText').text(ptext);
 }
 
 function parseLayerData() {
