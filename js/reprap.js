@@ -1,6 +1,6 @@
 /*! Reprap Ormerod Web Control | by Matt Burnett <matt@burny.co.uk>. | open license
  */
-var ver = 0.77; //App version
+var ver = 0.78; //App version
 var polling = false; 
 var printing = false;
 var paused = false;
@@ -668,7 +668,7 @@ function listGFiles() {
                 $('div#quicks td:eq(0)').append('<a href="#" role="button" class="btn btn-default disabled" itemprop="M23 '+item+'\nM24" id="quickgfile">'+item+'</a>');
             }
         }
-        $('div#' + list).append('<div id="gFileLink" class="file-button"><span id="fileName" class="pull-left">' + item + '</span><span id="fileDelete" class="glyphicon glyphicon-trash pull-right"></span></div>');
+        $('div#' + list).append('<div id="gFileLink" class="file-button"><span id="fileName">' + item + '</span> <span id="fileDelete" class="glyphicon glyphicon-trash pull-right"></span></div>');
     });
 }
 
