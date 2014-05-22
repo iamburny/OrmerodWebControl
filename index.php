@@ -1,7 +1,6 @@
 <?php
 
 //router class
-
 switch ($_SERVER['REQUEST_URI']) {
     case '/rr_files':
         $response = array("files" => array(

@@ -22,9 +22,11 @@ var headColour = "#FC2D2D"; //red
 var tempfilename = "temp.gcode";
 
 var gFile = [];
+var gFileIndex = 0;
 var macroGs = ['setbed.g']; //macro g files to add a Quick Buttons
 var chevLeft = "<span class='glyphicon glyphicon-chevron-left'></span>";
 var chevRight = "<span class='glyphicon glyphicon-chevron-right'></span>";
+var lastProgress = 0;
 
 jQuery.extend({
     askElle: function(reqType, code) {
@@ -246,6 +248,7 @@ $('div#panicBtn button').on('click', function() {
         case "reset":
             //reset printing after pause
             gFile = [];
+            gFileIndex = 0;
             printing = false;
             paused = false;
             btnVal = "M1";
@@ -469,9 +472,7 @@ function gUploadChoice(action) {
             $('span#gFileDisplay').html('<strong>Direct Web printing ' + gFilename + '</strong>');
             webPrinting = true;
             resetLayerData();
-
             findHeights();
-
             $('#tabs a:eq(1)').tab('show'); //show print status tab after drop 
             uploadLoop(action);
             break;
@@ -551,7 +552,8 @@ function uploadLoop(action) { //Web Printing/Uploading
             }
             break;
         default:
-            if (buffer == null || buffer < 500) {
+            if (buffer == null || buffer < 500)
+            {
                 var resp = $.askElle('status', '');
                 if (typeof resp != 'undefined') {
                     buffer = resp.buff;
@@ -559,10 +561,14 @@ function uploadLoop(action) { //Web Printing/Uploading
                     buffer = 0;
                 }
             }
+
             var wait = 20;
-            if (paused == true) {
+
+            if (paused == true)
+            {
                 wait = 2000;
-            } else if (buffer >= 100) {
+            } else if (buffer >= 100)
+            {
                 // Send a number of packets in quick succession while there is plenty of buffer space, to speed up the file upload.
                 // If we send too many then the user interface doesn't update often enough. Five seems about right.
                 var i = 0;
@@ -574,7 +580,9 @@ function uploadLoop(action) { //Web Printing/Uploading
                     wait = 3;
                 }
             }
-            setTimeout(function() {
+
+            setTimeout(function()
+            {
                 uploadLoop(action);
             }, wait);
             break;
@@ -596,7 +604,7 @@ function webSend(action) { //Web Printing/Uploading
     if (gFile.length > 0) {
         while (gFile.length > 0 && i < maxUploadCommands && (line.length + gFile[0].length + 3) < buffer) {
             if (i != 0) {
-                line += "\n"; //"%0A";
+                line += "\n";
             }
             line += gFile[0];
             gFile.shift();
@@ -642,13 +650,9 @@ function printSDfile(fName)
  *  display the uploding file modal progress box 
  */
 function uploadModal() {
-    modalMessage('File Upload Status', "<span id='ulTitle'>File Upload Status</span>" +
-            "<div class='progress text-center'>" +
-            "<div id='ulProgress' class='progress-bar' role='progressbar' aria-valuenow='60' aria-valuemin='0' aria-valuemax='100' style='width: 0%'>" +
-            "<span id='ulProgressText' title=''></span>" +
-            "</div>" +
-            "<span id='ulOffBar'>0% Complete</span>" +
-            "</div>", false);
+    modalMessage('File Upload Status', "<span id='ulTitle'>File Upload Status</span><div class='progress text-center'>" +
+            "<div id='ulProgress' class='progress-bar' role='progressbar' aria-valuenow='0' aria-valuemin='0' aria-valuemax='100' style='width: 0%'></div></div>",
+        false);
 }
 
 /**
@@ -710,8 +714,8 @@ function updateHeightsDisplay() {
  */
 function findHeightsInG() {
     var height = [];
-    var currentLine = gFileLength - 1;
-    var readUntilLine = gFileLength - 2000; //last 400
+    var currentLine = gFile.length - 1;
+    var readUntilLine = gFile.length - 2000; //last 400
     //work backwords from end of the file until 400 or 3 G1 Z commands found
     while (height.length < 3 && currentLine > readUntilLine) {
         //get last 3 G1 Z commands
@@ -749,8 +753,8 @@ function findOtherGMeta() {
     }
 
     //work backwords from end of the file
-    var currentLine = gFileLength - 1;
-    var readUntilLine = gFileLength - 100; //last 100 lines
+    var currentLine = gFile.length - 1;
+    var readUntilLine = gFile.length - 100; //last 100 lines
     while (currentLine > readUntilLine) {
         meta = readLine(gFile[currentLine]);
         if (meta[0] == 'Total Filament') {
@@ -1197,9 +1201,8 @@ function zeroPrefix(num) {
 }
 
 function setProgress(percent, bar, layer, layers) {
-    var barText = $('span#' + bar + 'ProgressText');
-    var offText = $('span#' + bar + 'OffBar');
-    var ptext = percent + "% Complete";
+    var progressBar = $('div#' + bar + 'Progress');
+    var ptext = percent + "%";
     if (bar == 'print') {
         ptext += ", Layer " + layer + " of " + layers;
         if (objTotalFilament > 0) {
@@ -1207,21 +1210,9 @@ function setProgress(percent, bar, layer, layers) {
         }
     }
 
-    switch (true) {
-        case percent <= 40 && percent > 0:
-            barText.text('').attr('title', '');
-            offText.text(ptext).attr('title', ptext);
-            break;
-        case percent > 40:
-            barText.text(ptext).attr('title', ptext);
-            offText.text('').attr('title', '');
-            break;
-        default:
-            barText.text('').attr('title', '');
-            offText.text('0% complete, layer 0 of 0');
-            break;
-    }
-    $('div#' + bar + 'Progress').css("width", percent + "%");
+    progressBar.text(ptext);
+    progressBar.css("width", percent + "%").attr('aria-valuenow', percent);
+
 }
 
 function parseLayerData() {
