@@ -5,7 +5,7 @@ var polling = false;
 var printing = false;
 var paused = false;
 var chart,chart2,ormerodIP,layerCount,currentLayer,objHeight,objTotalFilament,startingFilamentPos,objUsedFilament,printStartTime,gFilename,ubuff,currentFilamentPos,timerStart,storage,layerHeight,lastUpdatedTime;
-var maxUploadBuffer = 1000;
+var maxUploadBuffer = 1500;
 var messageSeqId = 0;
 
 //Temp/Layer Chart settings
@@ -22,6 +22,10 @@ var macroGs = ['setbed.g'];
 var chevLeft = "<span class='glyphicon glyphicon-chevron-left'></span>";
 var chevRight = "<span class='glyphicon glyphicon-chevron-right'></span>";
 
+var gcodeDir = "gcodes/";
+var webDir = "www/";
+var sysDir = "sys/";
+
 jQuery.extend({
     askElle: function(reqType, code) {
         var result;
@@ -37,6 +41,9 @@ jQuery.extend({
 			case 'upload_begin':
 			case 'delete':
 				query = "?name="+encodeURIComponent(code);
+				break;
+			case 'upload_end':
+				query = "?size="+code;
 				break;
         }
         var url = '//' + ormerodIP + '/rr_'+reqType+query;
@@ -283,7 +290,7 @@ $("div#gFileList1, div#gFileList2, div#gFileList3")
 }).on('mouseout', 'span#fileDelete', function() {
     $(this).parent().parent().parent().parent().parent().removeClass('file-red');
 }).on('click', 'span#fileDelete', function() {
-    var filename = "gcodes/" + $(this).parent().parent().text();
+    var filename = gcodeDir + $(this).parent().parent().text();
     var resp = $.askElle('delete', filename);
 	if (resp.err == 0) {
 		message('success', "G file [" + filename + "] deleted from the SD card");
@@ -463,62 +470,46 @@ function getFileLength() {
 
 function handleFileDrop(data, fName, action) {
     var ext = getFileExt(fName).toLowerCase();
-    if (ext === "g" || ext === "gco" || ext === "gcode" || (action === "htm" && (ext === "htm" || ext == "js" || ext == "css"))) {
-        gFileData = data;
-		gFileIndex = 0;
-        timer();
-        switch (action) {
-            case "config":
-                gFilename = fName;
-                var resp = $.askElle('upload_begin', "sys/"+gFilename);
-				if (resp.err == 0) {
-					ubuff = resp.ubuff;
-					message("info", "Config file "+gFilename+" upload started");
-					uploadModal();
-				} else {
-					uploadCantStart(gFilename);
-				}
-                break;       
-            case "htm":
-				switch(ext) {
-					case "js":
-						gFilename = "js/" + fName;
-						break;
-					case "css":
-						gFilename = "css/" + fName;
-						break;
-					default:
-						gFilename = fName;
-						break;
-				}					
-                var resp = $.askElle('upload_begin', "www/"+gFilename);
-				if (resp.err == 0) {
-					ubuff = resp.ubuff;
-					uploadModal();
-					message("info", "Web interface file "+gFilename+" upload started");
-					uploadLoop(action, "");
-				} else {
-					uploadCantStart(gFilename);
-				}
-                break;              
-            case "upload":
-				gFilename = fName;
-				uploadFile(fName, "gcodes/"+fName, "");
-                break;
-			case "uploadandprint":
-                gFilename = fName;
-				var tempFilename = "tempWebPrint.gcode";
-				uploadFile(fName, "gcodes/"+tempFilename, tempFilename);
-				break;
-        }
-    } else {
-        //alert('Not a G Code file');
-        modalMessage("File Error!", 'Not a valid file to print or upload', true);
-        return false;
-    }
+	gFileData = data;
+	gFileIndex = 0;
+	timer();
+	switch (action) {
+		case "config":
+			uploadFile(action, fName, sysDir + gFilename, "");
+			break;       
+		case "htm":
+			switch(ext) {
+				case "js":
+					uploadFile(action, fName, webDir + "js/" + fName, "");
+					break;
+				case "css":
+					uploadFile(action, fName, webDir + "css/" + fName, "");
+					break;
+				case "eot":
+				case "svg":
+				case "ttf":
+				case "woff":
+					uploadFile(action, fName, webDir + "fonts/" + fName, "");
+					break;
+				case "png":
+					uploadFile(action, fName, webDir + "img/" + fName, "");
+					break;
+				default:
+					uploadFile(action, fName, webDir + fName, "");
+					break;
+			}					
+			break;              
+		case "upload":
+			uploadFile(action, fName, gcodeDir + fName, "");
+			break;
+		case "uploadandprint":
+			var tempFilename = "tempWebPrint.gcode";
+			uploadFile("upload", fName, gcodeDir + tempFilename, tempFilename);
+			break;
+	}
 }
 
-function uploadFile(fromFile, toFile, printAfterUpload)
+function uploadFile(action, fromFile, toFile, printAfterUpload)
 {
 	var resp = $.askElle('upload_begin', toFile);
 	if (resp.err == 0) {
@@ -533,7 +524,7 @@ function uploadFile(fromFile, toFile, printAfterUpload)
 		}
 		gFilename = fromFile;
 		uploadModal();
-		uploadLoop("upload", printAfterUpload);
+		uploadLoop(action, printAfterUpload);
 	} else {
 		uploadCantStart(toFile);
 	}
@@ -541,7 +532,7 @@ function uploadFile(fromFile, toFile, printAfterUpload)
 
 function printSDfile(fName)
 {
-	var info = $.askElle('fileinfo', fName);
+	var info = $.askElle('fileinfo', gcodeDir + fName);
 	var height = 0, filament = 0;
 	if (info.hasOwnProperty('height') && isNumber(info.height))
 	{
@@ -585,9 +576,10 @@ function clearSlic3rSettings() {
 function uploadLoop(action, fileToPrint) { //Web Printing/Uploading
     if (gFileIndex == gFileData.length) {
 		//Finished with Dropped file, stop loop, end tasks
-		var resp = $.askElle('upload_end', "");
+		var resp = $.askElle('upload_end', gFileData.length);
 		if (resp.err != 0) {
 			$('span#ulTitle').text(gFilename + " Upload Failed!");
+			$('span#ulProgressText').text("ERROR!");
 			$('div#modal button#modalClose').removeClass('hidden');
 			message("info", gFilename + " Upload Failed!");     
 		}
@@ -690,7 +682,7 @@ function listGFiles() {
                 $('div#quicks td:eq(0)').append('<a href="#" role="button" class="btn btn-default disabled" itemprop="M23 '+item+'\nM24" id="quickgfile">'+item+'</a>');
             }
         }
-        $('div#' + list).append('<div id="gFileLink" class="file-button"><table style="width:100%"><tbody><tr><td style="width:90%"><span id="fileName" style="word-break:break-all">'
+        $('div#' + list).append('<div id="gFileLink" class="file-button"><table style="width:100%"><tbody><tr><td style="width:90%;word-break:break-all"><span id="fileName">'
 			+ item + '</span></td><td style="width:10%"><span id="fileDelete" class="glyphicon glyphicon-trash pull-right"></span></td></tr></tbody></table></div>');
     });
 }
