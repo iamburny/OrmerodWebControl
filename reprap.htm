@@ -1,7 +1,8 @@
 <!DOCTYPE HTML>
 <html>
 <head>
-<title>Ormerod Control v0.76</title>
+<title>Ormerod Control v0.79</title>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- Bootstrap -->
 <link href="css/bootstrap.min.css" type="text/css" 
@@ -30,12 +31,6 @@ rel="icon" />
 </div>
 <!-- Collect the nav links, forms, and other content for toggling -->
 <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-<div class="col-md-2">
-<form class="navbar-form navbar-left">
-<button type="button" id="printGfile" class="btn btn-default disabled"
-title="Drop a Gcode file here to Print it directly">Direct Print Drop/Click</button>
-</form>
-</div>
 <div class="col-md-2">
 <form class="navbar-form navbar-left">
 <button type="button" id="uploadPrintGfile" class="btn btn-default disabled"
@@ -321,15 +316,9 @@ title="Move X & Y to Bed Centre">G1 X100 Y100 F6000</a>
 </div>
 <div class="tab-pane" id="printview">
 <br />
-<div class="col-md-10 col-md-offset-1">
-<span class="text-center" id="gFileDisplay"></span>
-<div class="progress text-center">
-<div id="printProgress" class="progress-bar" role="progressbar" 
-aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" style="width: 0%">
-<span id="printProgressText" title=""></span>
-</div>
-<span id="printOffBar">0% complete, layer 0 of 0</span>
-</div>
+<div class="col-md-10 col-md-offset-1" style="margin-bottom:20px">
+<span id="gFileDisplay"></span> <span id="printProgressText" class="pull-right"></span>
+<progress id="printProgressBar" style="width:100%" value="0" max="100"></progress>
 </div>
 <div class="col-md-2 col-md-offset-1">
 <table class="table table-bordered" id="slic3r">
@@ -409,18 +398,16 @@ Upload it to the Duets SD card">SD Upload Drop</button>
 <input type="file" id="ulReprapHTMselect" style="display:none">
 </div>  
 <div class="col-md-6">
-
 </div>                                        
 </div>
 </div>
 <div class="panel panel-default">
 <div class="panel-body">
-<div class="col-md-12">
+<div class="col-md-12" style="margin-bottom:10px">
 <strong>Duet SD file list:</strong>
-<button type="button" class="btn btn-default pull-right" id="filereload">
-Refresh</button>
+<button type="button" class="btn btn-default pull-right" id="filereload">Refresh</button>
 </div>
-<div class="col-md-4 btn-group-vertical" id="gFileList">
+<div class="col-md-4 btn-group-vertical" id="gFileList1">
 </div>
 <div class="col-md-4 btn-group-vertical" id="gFileList2">
 </div>
@@ -532,11 +519,11 @@ value="1000" />
 <td class="text-center">
 <br />
 <button type="button" id="ulConfigG" class="btn btn-default btn-lg disabled" 
-title="Upload a new config.g file, replaces old file">Upload config.g</button>
+title="Upload a new file to the sys directory, replaces old file">Upload config file</button>
 <br /><br />
 <button type="button" id="ulReprapHTM" class="btn btn-default btn-lg disabled"
-title="Upload a new reprap.htm file, replaces old file">
-Upload reprap.htm</button>                                            
+title="Upload a new web interface file, replaces old file">
+Upload web file</button>                                            
 <br /><br />
 </td>
 </tr>
@@ -563,9 +550,8 @@ target="_blank">get help here</a>
 <div class="modal-dialog">
 <div class="modal-content">
 <div class="modal-header">
-<button type="button" class="close hidden" id="modalClose" data-dismiss="modal" 
-aria-hidden="true">&times;</button>
-<h4 class="modal-title"></h4>
+<button type="button" class="close hidden" id="modalClose" data-dismiss="modal" aria-hidden="true">&times;</button>
+<h4 class="modal-title">&nbsp;</h4>
 </div>
 <div class="modal-body">
 </div>
