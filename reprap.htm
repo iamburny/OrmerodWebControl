@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html>
     <head>
-        <title>Ormerod Control v0.79</title>
+        <title>Ormerod Control v0.80a</title>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <!-- Bootstrap -->
@@ -22,37 +22,30 @@
                 </div>
                 <!-- Collect the nav links, forms, and other content for toggling -->
                 <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-                    <div class="col-md-2">
-                        <form class="navbar-form navbar-left">
-                            <button type="button" id="uploadPrintGfile" class="btn btn-default disabled"
-                                    title="Drop a Gcode file here to upload it to a temporary file and then print it">Upload File</button>
-                        </form>
-                    </div>
-                    <div class="col-md-4">
+                    <div class="col-md-7">
                         <form class="navbar-form navbar-left">
                             <div class="input-group">
-                                <div class="input-group-btn" id='sendG'>
-                                    <button type="button" id='txtinput' class="btn btn-default">Send GCode</button>
-                                    <button type="button" class="btn btn-default dropdown-toggle" 
-                                            data-toggle="dropdown">
+                                <div class="input-group-btn" id="sendG">
+                                    <button type="button" id="uploadFile" class="btn btn-default">Upload File</button>
+                                    <button type="button" id="txtinput" class="btn btn-default">Send GCode</button> 
+                                    <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
                                         <span class="caret"></span>
                                     </button>
                                     <ul class="dropdown-menu">
-                                        <li><a href="#" id='gLink' title="Set Z Zero">G92 Z0</a></li>
-                                        <li><a href="#" id='gLink' title="Show Config">G1 X0 Y0</a></li>
-                                        <li><a href="#" id='gLink' title="Show Config">G1 Z0</a></li>
+                                        <li><a href="#" id="gLink" title="Set Z Zero">G92 Z0</a></li>
+                                        <li><a href="#" id="gLink" title="Show Config">G1 X0 Y0</a></li>
+                                        <li><a href="#" id="gLink" title="Show Config">G1 Z0</a></li>
                                         <li class="divider"></li>
-                                        <li><a href="#" id='gLink' title="Clear all Bed Comp">M561</a></li>
-                                        <li><a href="#" id='gLink' title="Bed Comp P0">G1 X60 Y20</a></li>
-                                        <li><a href="#" id='gLink' title="Bed Comp P1">G1 X60 Y170</a></li>
-                                        <li><a href="#" id='gLink' title="Bed Comp P2">G1 X170 Y170</a></li>
-                                        <li><a href="#" id='gLink' title="Bed Comp P3">G1 X170 Y20</a></li>
-                                        <li class="divider"></li>
-                                        <li class='disabled'><a href="#">Add Code</a></li>
+                                        <li><a href="#" id="gLink" title="Clear all Bed Comp">M561</a></li>
+                                        <li><a href="#" id="gLink" title="Bed Comp P0">G1 X60 Y20</a></li>
+                                        <li><a href="#" id="gLink" title="Bed Comp P1">G1 X60 Y170</a></li>
+                                        <li><a href="#" id="gLink" title="Bed Comp P2">G1 X170 Y170</a></li>
+                                        <li><a href="#" id="gLink" title="Bed Comp P3">G1 X170 Y20</a></li>
+                                        <li class="divider"></li><li class="disabled"><a href="#">Add Code</a></li>
                                     </ul>
-                                </div><!-- /btn-group -->
-                                <input type="text" id='gInput' size="35" class="form-control">
-                            </div><!-- /input-group -->
+                                </div>
+                                <input id="gInput" size="45" class="form-control">
+                            </div>
                         </form>
                     </div>
                     <div class="col-md-1">
@@ -175,25 +168,38 @@
                     <div class="tab-content">
                         <div class="tab-pane active" id="control">
                             <br />
-                            <div class="col-md-8">
+                            <div class="col-md-9">
                                 <!-- Head Move -->
                                 <table class="table table-bordered" id="moveHead">
                                     <tbody>
                                         <tr>
-                                            <td>
+                                            <td width="10%">
                                                 <button type="button" value='G28' id='homeAll' 
                                                         class="btn btn-primary btn-sm center-block disabled" 
                                                         title='Disables stepper motors and allows axis to move freely.'>Home All
                                                 </button>
                                             </td>
-                                            <th colspan="2">
-                                    <div class="col-md-11 text-center">Move Head Position</div>
-                                    </th>
-                                    </tr>                                
+                                            <th width="15%">
+                                                <div class="text-center">Speed</div>
+                                            </th>
+                                            <th colspan="2" width="75%">
+                                                 <div class="text-center">Move Head Position</div>
+                                            </th>
+                                        </tr>                                
                                     <tr>
-                                        <td><button type="button" value="G28 X0" id="homeX" 
+                                        <td>
+                                            <button type="button" value="G28 X0" id="homeX" 
                                                     class="btn btn-primary center-block disabled">Home X
-                                            </button></td>
+                                            </button>
+                                        </td>
+                                        <td rowspan="2" style="vertical-align: middle">
+                                                <select class="form-control">
+                                                    <option value="F1200">F1200</option>
+                                                    <option value="F2400">F2400</option>
+                                                    <option value="F4800" selected>F4800</option>
+                                                    <option value="F6000" selected>F6000</option>
+                                                  </select>
+                                        </td>
                                         <td>
                                             <div class="btn-group pull-right" id="Xminus">
                                             </div>
@@ -217,9 +223,18 @@
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td><button type="button" value="G28 Z0" id="homeZ" 
+                                        <td>
+                                            <button type="button" value="G28 Z0" id="homeZ" 
                                                     class="btn btn-primary center-block disabled">Home Z
-                                            </button></td>
+                                            </button>
+                                        </td>
+                                            <td>
+                                                <select class="form-control">
+                                                    <option value="F100">F100</option>
+                                                    <option value="F200" selected>F200</option>
+                                                    <option value="F400">F400</option>
+                                                  </select>
+                                            </td>                                        
                                         <td>
                                             <div class="btn-group pull-right" id="Zminus">
                                             </div>
@@ -232,17 +247,50 @@
                                     </tbody>
                                 </table>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <!-- Extruder control -->
                                 <table class="table table-bordered" id="extruder">
                                     <tbody>
                                         <tr>
-                                            <th colspan="2" class="text-center">Extruder Control</th>
+                                            <th colspan="2"><button class="btn btn-primary center-block disabled">Extruder Feed</button></th>
                                         </tr>
                                         <tr>
+                                            <th width="40%" style="vertical-align: middle">
+                                                Amount
+                                            </th>
                                             <td>
-                                                <span>Feed mm/min</span>
-                                                <div class="btn-group" data-toggle="buttons" id='speed'>
+                                                <select class="form-control">
+                                                    <option value="1">1mm</option>
+                                                    <option value="10">10mm</option>
+                                                    <option value="50" selected="selected">50mm</option>
+                                                    <option value="100">100mm</option>
+                                                    <option value="250">250mm</option>
+                                                  </select>
+                                                <!-- div class="btn-group" id="feed">
+                                                    <button type="button" class="btn btn-default disabled" id="feed" 
+                                                            value="1">1mm</button>
+                                                    <button type="button" class="btn btn-default disabled" id="feed" 
+                                                            value="5">5mm</button>
+                                                    <!--button type="button" class="btn btn-default disabled" id="feed" 
+                                                            value="10">10mm</button>
+                                                    <button type="button" class="btn btn-default disabled" id="feed" 
+                                                            value="50">50mm</button>
+                                                    <button type="button" class="btn btn-default disabled" id="feed" 
+                                                            value="100">100mm</button>
+                                                </div -->
+                                        </tr>                                        
+                                        <tr>
+                                            <th style="vertical-align: middle">
+                                                Speed
+                                            </th>
+                                            <td>
+                                                <select class="form-control">
+                                                    <option value="60">60mm/min</option>
+                                                    <option value="120" selected>120mm/min</option>
+                                                    <option value="240">240mm/min</option>
+                                                  </select>
+                                                
+                                                <!--div class="btn-group" data-toggle="buttons" id='speed'>
                                                     <label class="btn btn-default active disabled">
                                                         <input type="radio" name="speed" id="speed" value="60" checked>60
                                                     </label>
@@ -252,11 +300,15 @@
                                                     <label class="btn btn-default disabled">
                                                         <input type="radio" name="speed" id="speed" value="240">240
                                                     </label>
-                                                </div>
+                                                </div-->
                                             </td>
+                                        </tr>
+                                        <tr>
+                                            <th style="vertical-align: middle">
+                                                Direction
+                                            </th>
                                             <td>
-                                                Feed Direction
-                                                <div class="btn-group" data-toggle="buttons" id='feeddir'>
+                                                <div class="btn-group btn-group-sm" data-toggle="buttons" id='feeddir'>
                                                     <label class="btn btn-default active disabled">
                                                         <input type="radio" name="feeddir" id="forward" checked> Forward
                                                     </label>
@@ -266,23 +318,7 @@
                                                 </div>
                                             </td>
                                         </tr>
-                                        <tr>
-                                            <td colspan="2">
-                                                <span>Feed</span>
-                                                <div class="btn-group" id="feed">
-                                                    <button type="button" class="btn btn-default disabled" id="feed" 
-                                                            value="1">1mm</button>
-                                                    <button type="button" class="btn btn-default disabled" id="feed" 
-                                                            value="5">5mm</button>
-                                                    <button type="button" class="btn btn-default disabled" id="feed" 
-                                                            value="10">10mm</button>
-                                                    <button type="button" class="btn btn-default disabled" id="feed" 
-                                                            value="50">50mm</button>
-                                                    <button type="button" class="btn btn-default disabled" id="feed" 
-                                                            value="100">100mm</button>
-                                                </div>
-                                            </td>
-                                        </tr>
+
                                     </tbody>
                                 </table>
                             </div>
@@ -308,62 +344,103 @@
                         <div class="tab-pane" id="printview">
                             <br />
                             <div class="col-md-10 col-md-offset-1" style="margin-bottom:20px">
-                                <span id="gFileDisplay"></span> <span id="printProgressText" class="pull-right"></span>
-                                <progress id="printProgressBar" style="width:100%" value="0" max="100"></progress>
+                                <span id="gFileDisplay">
+                                    
+                                </span>
+                                <span id="printProgressText" class="pull-right">
+                                    
+                                </span>
+                                <progress id="printProgressBar" style="width:100%" value="0" max="100">
+                                    
+                                </progress>
                             </div>
-                            <div class="col-md-2 col-md-offset-1">
+                            <div class="col-md-3">
+                                <table class="table table-bordered">
+                                    <tbody>
+                                        <tr>
+                                            <th colspan="2" class="text-center">Print Progress</th>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <table class="table table-bordered">
+                                    <tbody>
+
+                                        <tr>
+                                            <td width="50%">Layer Height</td><td width="50%"><span id="lyrHeight">0</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Layer Count</td><td><span id="lyrCount">0</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <table class="table table-bordered">
+                                    <tbody>
+
+                                        <tr>
+                                            <td width="50%">Total Filament</td><td width="50%"><span id="filTotal">0</span></td>
+                                        </tr> 
+                                        <tr>
+                                            <td>Used Filament</td><td><span id="filUsed">0</span></td>
+                                        </tr> 
+                                    </tbody>
+                                </table>      
                                 <table class="table table-bordered" id="slic3r">
-                                    <tbody>
+                                    <tbody>                                
+
                                     </tbody>
-                                </table>
+                                </table>                                           
+
                             </div>
-                            <div class="col-md-8">
-                                <table class="table table-bordered" id="layers">
+                            <div class="col-md-3">
+                                <table class="table table-bordered" id="times">
                                     <tbody>
                                         <tr>
-                                            <td colspan="2">
-                                                <label>Object height in mm
-                                                    <input type="text" id="objheight" class="form-control" placeholder="mm" 
-                                                           title="Enter Object Height in mm, to see progress %">
-                                                </label>
-                                            </td>
-                                            <td rowspan="3">
-                                                <div id="layerChart" class="center-block"></div>
-                                            </td> 
+                                            <th colspan="2" class="text-center">Object Height</th>
                                         </tr>
                                         <tr>
-                                            <th>Print Duration</th>
-                                            <th>Last Layer</th>
-                                        </tr>
-                                        <tr>
-                                            <td><span id="elapsed">00:00:00</span></td>
-                                            <td><span id="lastlayer">00:00:00</span></td>
-                                        </tr>                                    
+                                            <td colspan="2"><input id="objheight" class="form-control" value="" /></td>
+                                        </tr>   
+                                </table>
+                                <table class="table table-bordered">                                        
+                                    <tr>
+                                        <th colspan="2" class="text-center">Print Times</th>
+                                    </tr>
+                                    <tr>
+                                        <td width="50%">Start</td><td width="50%"><span id="starttime">00:00:00</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Duration</td><td><span id="elapsed">00:00:00</span></td>
+                                    </tr>                                        
+                                    <tr>
+                                        <td>Last Layer</td><td><span id="lastlayer">00:00:00</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>This Layer</td><td><span id="thislayer">00:00:00</span></td>
+                                    </tr>                                        
                                     </tbody>
                                 </table>
+                            </div>                            
+                            <div class="col-md-6">
+                                <div id="layerChart" class="center-block"></div>
+                                <hr />
                                 <table class="table table-bordered" id="finish">
                                     <tbody>
                                         <tr>
                                             <th colspan="7" class="text-center">Estimated Print End Time</th>
                                         </tr>
                                         <tr>
-                                            <td>Based On</td>
-                                            <td>Last Layer</td>
-                                            <td>Avg. All Layers</td>
-                                            <td>Avg. Last 5 Layers</td>
-                                            <td>Filament usage</td>
+                                            <td></td>
+                                            <td>Layer Time</td>
+                                            <td>Filament Usage</td>
                                         </tr>
                                         <tr>
                                             <td>Est. Time Left</td>
                                             <td><span id="llTimeR">00:00:00</span></td>
-                                            <td><span id="avgAllR">00:00:00</span></td>
-                                            <td><span id="avg5R">00:00:00</span></td>
-                                            <td><span id="filTimeR">00:00:00</span></td></tr>
+                                            <td><span id="filTimeR">00:00:00</span></td>
+                                        </tr>
                                         <tr>
                                             <td>Est. End Time</td>
                                             <td><span id="llTime">00:00:00</span></td>
-                                            <td><span id="avgAll">00:00:00</span></td>
-                                            <td><span id="avg5">00:00:00</span></td>
                                             <td><span id="filTime">00:00:00</span></td>
                                         </tr>                                         
                                     </tbody>
@@ -372,30 +449,13 @@
                         </div>
                         <div class="tab-pane" id="gcodefiles">
                             <br />
-                            <div class="col-md-10 col-md-offset-1">
+                            <div class="col-md-12">
                                 <!-- Gfiles list -->
-                                <div class="panel panel-default">
-                                    <div class="panel-body">
-                                        <div class="col-md-3">
-                                            <button type="button" id="uploadGfile" class="btn btn-default btn-lg disabled" 
-                                                    title="Drop a G file here to
-                                                    Upload it to the Duets SD card">SD Upload Drop</button>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <input type="file" id="printGselect" style="display:none">
-                                            <input type="file" id="uploadPrintGselect" style="display:none">
-                                            <input type="file" id="uploadGselect" style="display:none">
-                                            <input type="file" id="ulConfigGselect" style="display:none">
-                                            <input type="file" id="ulReprapHTMselect" style="display:none">
-                                        </div>  
-                                        <div class="col-md-6">
-                                        </div>                                        
-                                    </div>
-                                </div>
                                 <div class="panel panel-default">
                                     <div class="panel-body">
                                         <div class="col-md-12" style="margin-bottom:10px">
                                             <strong>Duet SD file list:</strong>
+                                            <input type="file" id="uploadGselect" style="display:none">
                                             <button type="button" class="btn btn-default pull-right" id="filereload">Refresh</button>
                                         </div>
                                         <div class="col-md-4 btn-group-vertical" id="gFileList1">
@@ -410,7 +470,7 @@
                         </div>     
                         <div class="tab-pane" id="messages" style="overflow-y: scroll; height: 380px">
                             <br />
-                            <div class="col-md-10 col-md-offset-1 panel panel-default">
+                            <div class="col-md-12 panel panel-default">
                                 <div class="panel-body">
                                     <div class="col-md-1"><strong>Messages:</strong></div>
                                     <div class="col-md-2 col-md-offset-7 checkbox">
@@ -429,7 +489,7 @@
                         </div>
                         <div class="tab-pane" id="settings" style="overflow-y: scroll; height: 380px">
                             <br />
-                            <div class="col-md-3 col-md-offset-1">
+                            <div class="col-md-3">
                                 <table class="table table-bordered" id="settingVer">
                                     <tbody>
                                         <tr>
@@ -478,7 +538,15 @@
                                                     </div>
                                                     <div class="checkbox">
                                                         <label>
-                                                            <input type="checkbox" id="halfz" /> Use Half Z movements
+                                                            <input type="checkbox" id="halfz" title="move Z axis in steps of 0.05 instead of 0.1" /> Half Z movements
+                                                        </label>
+                                                        <br />
+                                                        <label>
+                                                            <input type="checkbox" id="verwarn" title="disable warnings about mis-matching htm/js and FW" /> Version warning off
+                                                        </label>
+                                                        <br />
+                                                        <label>
+                                                            <input type="checkbox" id="althome" title="axis homing buttons Set Home (G92) rather than firing home macro (G28)"/> Home btn's send G92
                                                         </label>
                                                     </div>
                                                     <br />
@@ -501,25 +569,7 @@
                                 </table>
                             </div>
                             <div class="col-md-3">
-                                <table class="table table-bordered col-md-3" id="settingSD">
-                                    <tbody>
-                                        <tr>                             
-                                            <th class="text-center">SD sys & www</th>
-                                        </tr>
-                                        <tr>
-                                            <td class="text-center">
-                                                <br />
-                                                <button type="button" id="ulConfigG" class="btn btn-default btn-lg disabled" 
-                                                        title="Upload a new file to the sys directory, replaces old file">Upload config file</button>
-                                                <br /><br />
-                                                <button type="button" id="ulReprapHTM" class="btn btn-default btn-lg disabled"
-                                                        title="Upload a new web interface file, replaces old file">
-                                                    Upload web file</button>                                            
-                                                <br /><br />
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                                Print Bed Contour Graph?
                             </div>
                             <div class="col-md-10 col-md-offset-1 btn-group-vertical" id="config">
                                 <br /><strong>Config.g file</strong><br />
