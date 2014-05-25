@@ -18,6 +18,7 @@ var headColour = "#FC2D2D"; //red
 
 var gFileData = "";
 var gFileIndex = 0;
+var expansionFactor = 1.33;
 var macroGs = ['setbed.g'];
 var chevLeft = "<span class='glyphicon glyphicon-chevron-left'></span>";
 var chevRight = "<span class='glyphicon glyphicon-chevron-right'></span>";
@@ -524,6 +525,7 @@ function uploadFile(action, fromFile, toFile, printAfterUpload)
 		}
 		gFilename = fromFile;
 		uploadModal();
+		expansionFactor = 1.33;		// this is about right for gcode files
 		uploadLoop(action, printAfterUpload);
 	} else {
 		uploadCantStart(toFile);
@@ -643,12 +645,20 @@ function webSend(action) { //Web Printing/Uploading
 	}
     if (gFileIndex < gFileData.length) {
 		var line = "";
-		while(gFileIndex < gFileData.length && line.length + 30 <= ubuff) {	// keep going until less than 30 bytes free space left
-			var chunkSize = Math.min(Math.floor((ubuff - line.length)/3), gFileData.length - gFileIndex);	// URIencoding a chunk increases its size by a factor of not more than 3
-			line += encodeURIComponent(gFileData.substring(gFileIndex, gFileIndex + chunkSize));
-			gFileIndex += chunkSize;
+		var startIndex = gFileIndex;
+		while(gFileIndex < gFileData.length && line.length + 10 <= ubuff) {	// keep going until less than 10 bytes free space left
+			var chunkSize = Math.min(Math.floor((ubuff - line.length)/(expansionFactor + 0.05)), gFileData.length - gFileIndex);
+			var chunk = encodeURIComponent(gFileData.substring(gFileIndex, gFileIndex + chunkSize));
+			if (line.length + chunk.length <= ubuff) {
+				line += chunk;
+				gFileIndex += chunkSize;
+			} else {
+				expansionFactor = chunk.length/chunkSize;
+			}
         }
+		
         var resp = $.askElle('upload_data', line); //send chunk of gcodes or html, and get buffer response
+		expansionFactor = (0.875 * expansionFactor) + (0.125 * (line.length/(gFileIndex - startIndex)));
         
         if (typeof resp != 'undefined') {
             ubuff = resp.ubuff;
