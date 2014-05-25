@@ -1,6 +1,6 @@
 /*! Reprap Ormerod Web Control | by Matt Burnett <matt@burny.co.uk>. | open license
  */
-var ver = 0.79; //App version
+var ver = 0.80; //App version
 var polling = false; 
 var printing = false;
 var paused = false;
@@ -475,7 +475,7 @@ function handleFileDrop(data, fName, action) {
 	timer();
 	switch (action) {
 		case "config":
-			uploadFile(action, fName, sysDir + gFilename, "");
+			uploadFile(action, fName, sysDir + fName, "");
 			break;       
 		case "htm":
 			switch(ext) {
@@ -546,6 +546,7 @@ function printSDfile(fName)
 	message('success', "File [" + fName + "] sent to print");
 	$('span#gFileDisplay').html('<strong>Printing ' + fName + ' from Duet SD card</strong>');
 	resetLayerData(height, filament);
+	$('progress#printProgressBar').show();
 	$('#tabs a:eq(1)').tab('show');
 }
 
@@ -698,7 +699,10 @@ function getFileName(filename) {
 function disableButtons(which) {
     switch (which) {
         case "head":
-            $('table#moveHead button, table#temp button, table#extruder button, table#extruder label, div#quicks a, button#uploadGfile, button#ulConfigG, button#ulReprapHTM, button#uploadPrintGfile').addClass('disabled');
+            $('table#moveHead button, table#extruder button, table#extruder label, div#quicks a, button#uploadGfile, button#ulConfigG, button#ulReprapHTM, button#uploadPrintGfile').addClass('disabled');
+            break;
+		case "temp":
+           $('table#temp button').addClass('disabled');
             break;
         case "panic":
             $('div#panicBtn button').addClass('disabled');
@@ -716,7 +720,10 @@ function disableButtons(which) {
 function enableButtons(which) {
     switch (which) {
         case "head":
-            $('table#moveHead button, table#temp button, table#extruder button, table#extruder label, div#quicks a, button#uploadGfile, button#ulConfigG, button#ulReprapHTM, button#uploadPrintGfile').removeClass('disabled');
+            $('table#moveHead button, table#extruder button, table#extruder label, div#quicks a, button#uploadGfile, button#ulConfigG, button#ulReprapHTM, button#uploadPrintGfile').removeClass('disabled');
+            break;
+        case "temp":
+            $('table#temp button').removeClass('disabled');
             break;
         case "panic":
             $('div#panicBtn button').removeClass('disabled');
@@ -805,6 +812,7 @@ function updatePage() {
         }
         $('span[id$="Temp"], span[id$="pos"]').text("0");
         disableButtons("head");
+		disableButtons("temp");
         disableButtons("panic");
     } else {
         $('button#connect').removeClass('btn-danger').addClass('btn-success').text("Online");
@@ -821,6 +829,7 @@ function updatePage() {
             $('button#printing').removeClass('btn-danger').removeClass('btn-success').addClass('btn-warning').text("Halted");
             disableButtons('panic');
             disableButtons("head");
+			disableButtons("temp");
             disableButtons("gfilelist");
 		} else if (status.status === "P") {
             //printing
@@ -832,7 +841,8 @@ function updatePage() {
 			}
             $('button#printing').removeClass('btn-danger').removeClass('btn-warning').addClass('btn-success').text("Active");
             enableButtons('panic');
-            disableButtons("head");
+			enableButtons('temp');
+            disableButtons("print");
             disableButtons("gfilelist");
             currentLayer = whichLayer(status.pos[2]);
 			if (isNumber(objHeight)) {
@@ -854,6 +864,7 @@ function updatePage() {
             $('button#printing').removeClass('btn-danger').removeClass('btn-success').addClass('btn-warning').text("Ready :)");
             disableButtons("panic");
             enableButtons('head');
+			enableButtons('temp');
             enableButtons("gfilelist");
         } else if (status.status === "I" && paused) {
             //paused
@@ -861,6 +872,7 @@ function updatePage() {
             $('button#printing').removeClass('btn-danger').removeClass('btn-success').addClass('btn-warning').text("Paused");
             enableButtons('panic');
             enableButtons('head');
+			enableButtons('temp');
         } else {
             //unknown state
             printing = paused = false;
