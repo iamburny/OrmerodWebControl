@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html>
 <head>
-<title>Ormerod Control v0.80</title>
+<title>Ormerod Control v0.81</title>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- Bootstrap -->
@@ -25,7 +25,7 @@ rel="icon" />
 <!-- Brand and toggle get grouped for better mobile display -->
 <div class="navbar-header">
 <a class="navbar-brand" href="#">
-<strong>RepRapPro Ormerod</strong>
+<span id="machineName" style="font-weight:bold>RepRapPro Ormerod</span>
 <small>- <span id="hostLocation"></span></small>
 </a>
 </div>
@@ -332,11 +332,11 @@ title="Move X & Y to Bed Centre">G1 X100 Y100 F6000</a>
 <tr>
 <td colspan="2">
 <label>Object height in mm
-<input type="text" id="objheight" class="form-control" placeholder="mm" 
-title="Enter Object Height in mm, to see progress %">
+<input type="text" id="objheight" class="form-control" placeholder="mm" title="Enter Object Height in mm, to see progress %">
 </label>
 </td>
 <td rowspan="3">
+<div class="text-center" style="font-weight:bold">Print time by layer</div>
 <div id="layerChart" class="center-block"></div>
 </td> 
 </tr>
