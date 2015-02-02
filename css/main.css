@@ -31,4 +31,6 @@ div#gFileList, div#gFileList2, div#gFileList3 {vertical-align: middle}
 
 .file-button{width:100%;border:1px solid;border-radius:5px;border-color:#C0C0C0;padding:3px 3px 3px 3px;margin-top:1px;cursor:pointer}
 .file-red{color:#fff !important;background-color:#d9534f !important;border-color:#d43f3a !important}
+.file-green{color:#fff !important;background-color:#40c040 !important;border-color:#3fd43a !important}
+.file-blue{color:#fff !important;background-color:#5353d9 !important;border-color:#3f3fd4 !important}
 .file-grey{color:#333;background-color:#ebebeb;border-color:#adadad}
