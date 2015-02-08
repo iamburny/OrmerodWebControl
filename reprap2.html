@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="description" content="RepRapPro Ormerod Web Control Interface">
+        <meta name="author" content="Matt Burnett (iamburny)">
+        <link href="favicon.ico" type="image/x-icon" rel="icon" />
+        <title>Ormerod Web Control v2.0</title>
+        <link href="css/bootstrap.min.css" type="text/css" rel="stylesheet" />
+        <link href="css/debug.css" rel="stylesheet" type="text/css"/>
+        <link href="css/dashboard.css" rel="stylesheet">
+    </head>
+    <body>
+
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-sm-12">
+                    <div class="btn-group" role="group" aria-label="...">
+                        <button class="btn btn-danger" id="connect">Connect</button>
+                        <button class="btn btn-danger" id="printing" disabled>Offline</button>
+                        <button class="btn btn-danger" id="stop" value="M112" disabled>Stop!</button>
+                        <button class="btn btn-primary" id="pause" value='M25' disabled>Pause</button>
+                        <button class="btn btn-info " id="resume" value='M25' disabled>Reset</button>
+                    </div>
+                    <div class="col-sm-6 col-xs-12 pull-right">
+                        <input type="text" id="gInput" size="35" class="form-control" placeholder="Send a Gcode..." title="Type Gcode and press enter">
+                    </div>
+                </div>  
+            </div>
+            <div class="row">
+                
+            </div>
+        </div>
+
+
+        <!-- Bootstrap core JavaScript
+        ================================================== -->
+        <!-- Placed at the end of the document so the pages load faster -->
+        <script src="js/jquery-2.1.0.min.js" type="text/javascript"></script>
+        <script src="js/bootstrap.min.js" type="text/javascript"></script>
+    </body>
+</html>
