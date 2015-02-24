@@ -12,27 +12,43 @@ and open the template in the editor.
         <link href="css/bootstrap.min.css" rel="stylesheet" type="text/css"/>
 
         <style type="text/css">
-            .tooltip{
+            .tt{
                 margin:8px;
                 padding:8px;
-                border:1px solid blue;
+                border:5px solid blue;
                 background-color:yellow;
                 position: absolute;
                 z-index: 5;
             }
-
+            #zup button, #zdown button{
+                width:100%;
+            }
         </style>
     </head>
     <body>
 
         <div class="container-fluid">
+            <div id='zup' class='col-md-1'>
+                <button type="button" class="btn btn-default">Max</button>
+                <button type="button" class="btn btn-default">^25^</button>
+                <button type="button" class="btn btn-default">^10^</button>
+                <button type="button" class="btn btn-default">^5^</button>
+                <button type="button" class="btn btn-default">^0.5^</button>
+            </div>
             <div class="col-md-6">
                 <div id="bed" style="margin:5px; padding:5px; width:260px;height:200px;border: 10px grey solid"></div>
-                
                 <input class="col-md-5" type="text" id="coord">
                 <input class="col-md-offset-1 col-md-5" type="text" id="gcode" >
             </div>
+            <div id='zdown' class='col-md-1'>
+                <button type="button" class="btn btn-default">v25v</button>
+                <button type="button" class="btn btn-default">v5v</button>
+                <button type="button" class="btn btn-default">v1v</button>
+                <button type="button" class="btn btn-default">v0.5v</button>
+                <button type="button" class="btn btn-default">Zero</button>
+            </div>            
         </div>
+        <div class="tt">Tooltip</div>
         <script src="js/jquery-2.1.0.min.js" type="text/javascript"></script>
         <script src="js/bootstrap.min.js" type="text/javascript"></script>
         <script>
@@ -42,6 +58,10 @@ and open the template in the editor.
             $('#bed').on('mousemove', function (e) {
                 var pos = mousePos('#bed', e.pageX, e.pageY);
                 $('#coord').val('X:' + pos.x + ',Y:' + pos.y);
+                $('#tt').css({
+                    'top': e.pageX+"px",
+                    'left': e.pageY+"px"
+                });
             }).on('click', function (e) {
                 var pos = mousePos('#bed', e.pageX, e.pageY);
                 $('#gcode').val('G1 X' + pos.x + ' Y' + pos.y);
