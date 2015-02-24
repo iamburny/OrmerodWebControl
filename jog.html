@@ -11,24 +11,55 @@ and open the template in the editor.
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link href="css/bootstrap.min.css" rel="stylesheet" type="text/css"/>
 
+        <style type="text/css">
+            .tooltip{
+                margin:8px;
+                padding:8px;
+                border:1px solid blue;
+                background-color:yellow;
+                position: absolute;
+                z-index: 5;
+            }
+
+        </style>
     </head>
     <body>
+
         <div class="container-fluid">
             <div class="col-md-6">
-                <div id="bed" style="margin:5px; width:220px;height:200px;border: 1px grey solid"></div>
-                <input class="col-md-5" type="text" id="coord"><input class="col-md-offset-1 col-md-5" type="text" id="gcode" >
+                <div id="bed" style="margin:5px; padding:5px; width:260px;height:200px;border: 10px grey solid"></div>
+                
+                <input class="col-md-5" type="text" id="coord">
+                <input class="col-md-offset-1 col-md-5" type="text" id="gcode" >
             </div>
         </div>
         <script src="js/jquery-2.1.0.min.js" type="text/javascript"></script>
         <script src="js/bootstrap.min.js" type="text/javascript"></script>
         <script>
-           
-            $('#bed').mousemove(function (e) {
-                var x = Math.floor(((e.pageX - this.offsetLeft) - 15) / 2);
-                var y = Math.floor((e.pageY - this.offsetTop) / 2);
-                $('#coord').val('X:' + x + ',Y:' + y);
+            var xmax = 200, xmin = -15, ymax = 200, ymin = 0;
+            var yzero = ymax, xzero = xmin;
+
+            $('#bed').on('mousemove', function (e) {
+                var pos = mousePos('#bed', e.pageX, e.pageY);
+                $('#coord').val('X:' + pos.x + ',Y:' + pos.y);
+            }).on('click', function (e) {
+                var pos = mousePos('#bed', e.pageX, e.pageY);
+                $('#gcode').val('G1 X' + pos.x + ' Y' + pos.y);
             });
 
+            function mousePos(element, y, x) {
+                var off = $(element);
+                var relx = Math.floor((x - off.offset().top) / (off.outerHeight() / (xmax - xmin))) - 15;
+                var rely = Math.floor((y - off.offset().left) / (off.outerWidth() / (ymax - ymin)));
+
+                //set max and mins
+                relx < xmin ? relx = xmin : false;
+                relx > xmax ? relx = xmax : false;
+                rely < ymin ? rely = ymin : false;
+                rely > ymax ? rely = ymax : false;
+
+                return {x: relx, y: yzero - rely};
+            }
         </script>        
     </body>
 </html>
