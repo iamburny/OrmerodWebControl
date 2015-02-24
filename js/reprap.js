@@ -1120,3 +1120,9 @@ Number.prototype.toHHMMSS = function() {
     minutes=='00'?m="":m=minutes+"m ";
     return h+m+seconds + 's';
 };
+
+$('#feed').slider({
+	formatter: function(value) {
+		return value + 'mm';
+	}
+});
