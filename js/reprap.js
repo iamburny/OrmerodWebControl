@@ -48,7 +48,7 @@ jQuery.extend({
 				break;
         }
         var url = '//' + ormerodIP + '/rr_'+reqType+query;
-        $.ajax(url, {async:false,dataType:"json",success:function(data){result = data;}});
+        $.ajax(url, {async:false,dataType:"jsonp",success:function(data){result = data;}});
         return result;
     }
 });
